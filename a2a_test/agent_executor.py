@@ -214,7 +214,7 @@ class HelloWorldAgentExecutor(AgentExecutor):
         agent2_reply_text_parts = agent2_reply_text.split()
         if agent2_reply_text_parts[0] != "Hello2":
             await event_queue.enqueue_event(
-                new_agent_text_message(f"[Agent1] Incorrect handshake2 reply")
+                new_agent_text_message(f"[Agent1] Incorrect handshake2 reply {agent2_reply_text}")
             )
             return
         

@@ -69,6 +69,7 @@ def _fetch_session_keys_blocking(config_path: str, key_id: int) -> List[Dict[str
             "macKey_bytes": base64.b64decode(k["macKey_b64"]),
             "absValidity": k.get("absValidity"),
             "relValidity": k.get("relValidity"),
+            "owner": k.get("owner"),
         })
 
     if not session_key_value:
@@ -90,7 +91,7 @@ def _extract_first_text_from_context(context: RequestContext) -> str:
     return ""
 
 
-def _extract_session_key_id_from_card(card: AgentCard) -> int:
+def _extract_agent_group_from_card(card: AgentCard) -> int:
     card_json = card.model_dump(mode="python", exclude_none=True)
     caps = card_json.get("capabilities") or {}
     exts = caps.get("extensions") or []
@@ -98,11 +99,11 @@ def _extract_session_key_id_from_card(card: AgentCard) -> int:
     for ext in exts:
         if ext.get("uri") == SESSION_EXT_URI:
             params = ext.get("params") or {}
-            if "sessionKeyId" not in params:
-                raise KeyError("Found extension but sessionKeyId missing in params")
-            return int(params["sessionKeyId"])
+            if "agentGroup" not in params:
+                raise KeyError("Found extension but agentGroup missing in params")
+            return params["agentGroup"]
 
-    raise KeyError(f"sessionKeyId not found in Agent1 card extensions for uri={SESSION_EXT_URI}")
+    raise KeyError(f"agentGroup not found in Agent1 card extensions for uri={SESSION_EXT_URI}")
 
 
 def _extract_first_text_from_send_message_response(resp: Any) -> str:
@@ -152,8 +153,15 @@ class Agent2Executor(AgentExecutor):
         self._pending: Dict[str, Dict[str, Any]] = {}
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
-        user_text = "verify the session key Id" # _extract_first_text_from_context(context)
-        # TODO: get agent group from agent1's AgentCard
+        try:
+             async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as httpx_client:
+                 agent1_card = await _fetch_agent1_card(httpx_client)
+                 agent_group_from_agentCard = _extract_agent_group_from_card(agent1_card)
+        except Exception as e:
+            await event_queue.enqueue_event(
+                new_agent_text_message(f"[Agent2] Cannot fetch Agent1's card: {type(e).__name__}: {e}")
+            )
+        
         task = context.message.parts[0].root.text
         task_parts = task.split()
 
@@ -163,13 +171,21 @@ class Agent2Executor(AgentExecutor):
             try:
                 keys = await asyncio.to_thread(_fetch_session_keys_blocking, CONFIG_PATH, session_key_id)
                 session_key_value = keys[0]['cipherKey_b64']
+                agent_group_from_session_key = keys[0]['owner']
             except Exception as e:
                 await event_queue.enqueue_event(
                     new_agent_text_message(
                         f"Error in getting session key\n"
                         f"sessionKeyId={session_key_id}\n"
+                        f"keys={keys}\n"
                         f"Failed to fetch session keys from Auth/KDS: {type(e).__name__}: {e}"
                     )
+                )
+                return
+
+            if agent_group_from_agentCard != agent_group_from_session_key:
+                await event_queue.enqueue_event(
+                    new_agent_text_message("[Agent2] Agent1 should not be the owner of this session key")
                 )
                 return
 
@@ -203,7 +219,7 @@ class Agent2Executor(AgentExecutor):
             return
 
         # If the task is not start with Hello1 or Hello3
-        await event_queue.enqueue_event(new_agent_text_message("Agent2: unknown message"))  
+        await event_queue.enqueue_event(new_agent_text_message(f"Agent2: unknown message {task}"))  
 
         # try:
         #     async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as httpx_client:
