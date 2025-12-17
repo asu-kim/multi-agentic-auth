@@ -31,14 +31,15 @@ AGENT2_BASE_URL = "http://localhost:9998"
 
 HTTP_TIMEOUT = httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0)
 
+
 def gen_hex_nonce_32():
     return secrets.token_hex(16)
 
 def hmac_sha256_hex(key_bytes: bytes, msg_bytes: bytes) -> str:
     return hmac.new(key_bytes, msg_bytes, hashlib.sha256).hexdigest()
 
-def _abs(p: str) -> str:
-    return os.path.abspath(os.path.expanduser(p))
+# def _abs(p: str) -> str:
+#     return os.path.abspath(os.path.expanduser(p))
 
 def _parse_last_json_line(stdout: str) -> dict:
     for line in reversed(stdout.strip().splitlines()):
@@ -48,10 +49,9 @@ def _parse_last_json_line(stdout: str) -> dict:
     raise ValueError("No JSON line found in Node output")
 
 def _fetch_session_keys_blocking(config_path: str, key_id: int) -> List[Dict[str, Any]]:
-
     here = os.path.dirname(os.path.abspath(__file__))
-
-    agent_dir = _abs(os.path.join(here, "/Users/sunyoungkim/iotauth/entity/node/example_entities"))
+    root_dir = os.environ.get('ROOT', os.path.dirname(here)) 
+    agent_dir = os.path.abspath(os.path.join(root_dir, "iotauth/entity/node/example_entities"))
 
     cmd = f"node agent.js {shlex.quote(config_path)} keyId {int(key_id)}"
     p = subprocess.run(
@@ -168,7 +168,6 @@ class HelloWorldAgentExecutor(AgentExecutor):
         )
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:   
-
         # if key_id is None:
         #     result = await self.agent.invoke()
         #     await event_queue.enqueue_event(
@@ -179,7 +178,6 @@ class HelloWorldAgentExecutor(AgentExecutor):
         #     return
         
         session_key_id = int(context.message.parts[0].root.text)
-        
 
         try:
             keys = await asyncio.to_thread(_fetch_session_keys_blocking, self.config_path, session_key_id)

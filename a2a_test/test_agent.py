@@ -7,6 +7,7 @@ from uuid import uuid4
 from typing import Any, Dict, List
 
 import httpx
+import argparse
 
 from a2a.client import A2ACardResolver, A2AClient
 from a2a.types import (
@@ -19,12 +20,15 @@ from a2a.utils.constants import (
     AGENT_CARD_WELL_KNOWN_PATH,
 )
 
-SESSION_KEY_ID = 10100023
 
 async def main() -> None:
     # Configure logging to show INFO level messages
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)  # Get a logger instance
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--keyId", required=True, type=int, help="Session Key Id from user")
+    args = ap.parse_args()
+    session_key_id = args.keyId
 
     # --8<-- [start:A2ACardResolver]
 
@@ -76,7 +80,7 @@ async def main() -> None:
             'message': {
                 'role': 'user',
                 'parts': [
-                    {'kind': 'text', 'text': f"{SESSION_KEY_ID}"}
+                    {'kind': 'text', 'text': f"{session_key_id}"}
                 ],
                 'messageId': uuid4().hex,
             },

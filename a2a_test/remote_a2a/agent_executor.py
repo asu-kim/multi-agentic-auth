@@ -27,14 +27,15 @@ SESSION_EXT_URI = "https://asu-kim.example/ext/sst-session-key/v1"
 HTTP_TIMEOUT = httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0)
 CONFIG_PATH = "configs/net1/website.config"
 
+
 def gen_hex_nonce_32():
     return secrets.token_hex(16)
 
 def hmac_sha256_hex(key_bytes: bytes, msg_bytes: bytes) -> str:
     return hmac.new(key_bytes, msg_bytes, hashlib.sha256).hexdigest()
 
-def _abs(p: str) -> str:
-    return os.path.abspath(os.path.expanduser(p))
+# def _abs(p: str) -> str:
+#     return os.path.abspath(os.path.expanduser(p))
 
 def _parse_last_json_line(stdout: str) -> dict:
     for line in reversed(stdout.strip().splitlines()):
@@ -45,7 +46,8 @@ def _parse_last_json_line(stdout: str) -> dict:
 
 def _fetch_session_keys_blocking(config_path: str, key_id: int) -> List[Dict[str, Any]]:
     here = os.path.dirname(os.path.abspath(__file__))
-    agent_dir = _abs(os.path.join(here, "/Users/sunyoungkim/iotauth/entity/node/example_entities"))
+    root_dir = os.environ.get('ROOT', os.path.dirname(os.path.dirname(here))) 
+    agent_dir = os.path.abspath(os.path.join(root_dir, "iotauth/entity/node/example_entities"))
 
     cmd = f"node website.js {shlex.quote(config_path)} keyId {int(key_id)}"
     p = subprocess.run(
@@ -77,7 +79,7 @@ def _fetch_session_keys_blocking(config_path: str, key_id: int) -> List[Dict[str
 
     return session_key_value
 
-def _extract_first_text_from_context(context: RequestContext) -> str:
+def _extract_task_text_from_context(context: RequestContext) -> str:
     if not context.message or not context.message.parts:
         return ""
 
@@ -162,7 +164,7 @@ class Agent2Executor(AgentExecutor):
                 new_agent_text_message(f"[Agent2] Cannot fetch Agent1's card: {type(e).__name__}: {e}")
             )
         
-        task = context.message.parts[0].root.text
+        task = context.message.parts[0].root.text # TODO fix it more robust
         task_parts = task.split()
 
         if task_parts[0] == "Hello1":
@@ -177,7 +179,6 @@ class Agent2Executor(AgentExecutor):
                     new_agent_text_message(
                         f"Error in getting session key\n"
                         f"sessionKeyId={session_key_id}\n"
-                        f"keys={keys}\n"
                         f"Failed to fetch session keys from Auth/KDS: {type(e).__name__}: {e}"
                     )
                 )
