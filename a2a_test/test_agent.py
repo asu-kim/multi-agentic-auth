@@ -19,7 +19,7 @@ from a2a.utils.constants import (
     AGENT_CARD_WELL_KNOWN_PATH,
 )
 
-SESSION_KEY_ID = 10100021
+SESSION_KEY_ID = 10100023
 
 async def main() -> None:
     # Configure logging to show INFO level messages

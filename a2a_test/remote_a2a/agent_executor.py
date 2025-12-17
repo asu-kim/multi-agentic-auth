@@ -175,9 +175,11 @@ class Agent2Executor(AgentExecutor):
 
             hmac1 = hmac_sha256_hex(base64.b64decode(session_key_value), binascii.unhexlify(nonce1))
             nonce2 = gen_hex_nonce_32()
+            hmac2 = hmac_sha256_hex(base64.b64decode(session_key_value), binascii.unhexlify(nonce2))
             self._pending["Handshake1"] = {
                 "sessionKeyValue": session_key_value,
                 "nonce2": nonce2,
+                "hmac2": hmac2
             }
             response = f"Hello2 {hmac1} {nonce2}"
             await event_queue.enqueue_event(new_agent_text_message(response))
@@ -188,8 +190,8 @@ class Agent2Executor(AgentExecutor):
             key, st = next(iter(self._pending.items()))
             session_key_value = st["sessionKeyValue"]
             nonce2 = st["nonce2"]
-
-            hmac2 = hmac_sha256_hex(base64.b64decode(session_key_value), binascii.unhexlify(nonce2))
+            hmac2 = st["hmac2"]
+            
             ok = hmac.compare_digest(hmac2, hmac2_agent1)     
             if not ok:
                 await event_queue.enqueue_event(

@@ -201,7 +201,7 @@ class HelloWorldAgentExecutor(AgentExecutor):
             async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as httpx_client:
                 agent2_card = await _fetch_agent2_card(httpx_client)
 
-                agent1_reply_text = await agent1_call_agent2(
+                agent2_reply_text = await agent1_call_agent2(
                     httpx_client=httpx_client,
                     agent2_card=agent2_card,
                     user_text=f"Hello1 {session_key_id} {nonce1}",
@@ -211,40 +211,40 @@ class HelloWorldAgentExecutor(AgentExecutor):
                 new_agent_text_message(f"[Agent1] Error while talking to Agent2 in phase1: {type(e).__name__}: {e}")
             )
 
-        agent1_reply_text_parts = agent1_reply_text.split()
-        if agent1_reply_text_parts[0] == "Hello2":
-            hmac1_agent2 = agent1_reply_text_parts[1]
-            nonce2 = agent1_reply_text_parts[2]
-        else:
+        agent2_reply_text_parts = agent2_reply_text.split()
+        if agent2_reply_text_parts[0] != "Hello2":
             await event_queue.enqueue_event(
                 new_agent_text_message(f"[Agent1] Incorrect handshake2 reply")
             )
             return
         
-        ok = hmac.compare_digest(hmac1, hmac1_agent2) 
-        hmac2 = hmac_sha256_hex(base64.b64decode(session_key_value), binascii.unhexlify(nonce2))
+        hmac1_agent2 = agent2_reply_text_parts[1]
+        nonce2 = agent2_reply_text_parts[2]
         
-        if ok:
-            try:
-                async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as httpx_client:
-                    agent2_card = await _fetch_agent2_card(httpx_client)
-
-                    agent1_reply_text2 = await agent1_call_agent2(
-                        httpx_client=httpx_client,
-                        agent2_card=agent2_card,
-                        user_text=f"Hello3 {hmac2}",
-                    )
-            except Exception as e:
-                await event_queue.enqueue_event(
-                    new_agent_text_message(f"[Agent1] Error while talking to Agent2 in phase2: {type(e).__name__}: {e}")
-                )
-        else:
+        ok = hmac.compare_digest(hmac1, hmac1_agent2) 
+        if not ok:
             await event_queue.enqueue_event(
                 new_agent_text_message(f"[Agent1] Hmac1 values are different")
             )
             return
         
-        result_verifying_hmac2 = agent1_reply_text2.strip()
+        hmac2 = hmac_sha256_hex(base64.b64decode(session_key_value), binascii.unhexlify(nonce2))
+        try:
+            async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as httpx_client:
+                agent2_card = await _fetch_agent2_card(httpx_client)
+
+                agent2_reply_text2 = await agent1_call_agent2(
+                    httpx_client=httpx_client,
+                    agent2_card=agent2_card,
+                    user_text=f"Hello3 {hmac2}",
+                )
+        except Exception as e:
+            await event_queue.enqueue_event(
+                new_agent_text_message(f"[Agent1] Error while talking to Agent2 in phase2: {type(e).__name__}: {e}")
+            )
+        
+        
+        result_verifying_hmac2 = agent2_reply_text2.strip()
         if result_verifying_hmac2 != "HMAC2 verified":
             await event_queue.enqueue_event(
                 new_agent_text_message(f"[Agent1] Hmac2 values are different {result_verifying_hmac2}")
