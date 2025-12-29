@@ -21,7 +21,7 @@ import hmac, hashlib, secrets, binascii
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-AGENT1_BASE_URL = "http://localhost:9999"    # The agent who has the session key ID in their card
+AGENT1_BASE_URL = "http://localhost:9999"    # The agent who has the session key ID
 SESSION_EXT_URI = "https://asu-kim.example/ext/sst-session-key/v1"
 
 HTTP_TIMEOUT = httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0)
@@ -33,9 +33,6 @@ def gen_hex_nonce_32():
 
 def hmac_sha256_hex(key_bytes: bytes, msg_bytes: bytes) -> str:
     return hmac.new(key_bytes, msg_bytes, hashlib.sha256).hexdigest()
-
-# def _abs(p: str) -> str:
-#     return os.path.abspath(os.path.expanduser(p))
 
 def _parse_last_json_line(stdout: str) -> dict:
     for line in reversed(stdout.strip().splitlines()):
@@ -145,11 +142,11 @@ async def _agent2_call_agent1(httpx_client: httpx.AsyncClient, agent1_card: Agen
     request = SendMessageRequest(id=str(uuid4()), params=MessageSendParams(**send_message_payload))
 
     response = await client.send_message(request)
-    return _extract_first_text_from_send_message_response(response) # response.root.result.parts[0].root.text 
+    return _extract_first_text_from_send_message_response(response) # same as response.root.result.parts[0].root.text 
 
 
 class Agent2Executor(AgentExecutor):
-
+    "An agent who has NOT session Key Id in their AgentCard"
     def __init__(self, card: Optional[AgentCard] = None):
         self._card = card
         self._pending: Dict[str, Dict[str, Any]] = {}
@@ -164,12 +161,12 @@ class Agent2Executor(AgentExecutor):
                 new_agent_text_message(f"[Agent2] Cannot fetch Agent1's card: {type(e).__name__}: {e}")
             )
         
-        task = context.message.parts[0].root.text # TODO fix it more robust
+        task = _extract_task_text_from_context(context) 
         task_parts = task.split()
 
         if task_parts[0] == "Hello1":
             session_key_id = int(task_parts[1])
-            nonce1 = task_parts[2]
+            nonce1_from_agent1 = task_parts[2]
             try:
                 keys = await asyncio.to_thread(_fetch_session_keys_blocking, CONFIG_PATH, session_key_id)
                 session_key_value = keys[0]['cipherKey_b64']
@@ -190,15 +187,15 @@ class Agent2Executor(AgentExecutor):
                 )
                 return
 
-            hmac1 = hmac_sha256_hex(base64.b64decode(session_key_value), binascii.unhexlify(nonce1))
-            nonce2 = gen_hex_nonce_32()
-            hmac2 = hmac_sha256_hex(base64.b64decode(session_key_value), binascii.unhexlify(nonce2))
+            hmac1_agent2 = hmac_sha256_hex(base64.b64decode(session_key_value), binascii.unhexlify(nonce1_from_agent1))
+            nonce2_from_agent2 = gen_hex_nonce_32()
+            hmac2_agent2 = hmac_sha256_hex(base64.b64decode(session_key_value), binascii.unhexlify(nonce2_from_agent2))
             self._pending["Handshake1"] = {
                 "sessionKeyValue": session_key_value,
-                "nonce2": nonce2,
-                "hmac2": hmac2
+                "nonce2": nonce2_from_agent2,
+                "hmac2": hmac2_agent2
             }
-            response = f"Hello2 {hmac1} {nonce2}"
+            response = f"Hello2 {hmac1_agent2} {nonce2_from_agent2}"
             await event_queue.enqueue_event(new_agent_text_message(response))
 
         elif task_parts[0] == "Hello3":
@@ -206,10 +203,10 @@ class Agent2Executor(AgentExecutor):
 
             key, st = next(iter(self._pending.items()))
             session_key_value = st["sessionKeyValue"]
-            nonce2 = st["nonce2"]
-            hmac2 = st["hmac2"]
+            nonce2_from_agent2 = st["nonce2"]
+            hmac2_agent2 = st["hmac2"]
             
-            ok = hmac.compare_digest(hmac2, hmac2_agent1)     
+            ok = hmac.compare_digest(hmac2_agent2, hmac2_agent1)     
             if not ok:
                 await event_queue.enqueue_event(
                     new_agent_text_message("[Agent2] Hmac2 values are different")
@@ -221,48 +218,6 @@ class Agent2Executor(AgentExecutor):
 
         # If the task is not start with Hello1 or Hello3
         await event_queue.enqueue_event(new_agent_text_message(f"Agent2: unknown message {task}"))  
-
-        # try:
-        #     async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as httpx_client:
-        #         agent1_card = await _fetch_agent1_card(httpx_client)
-        #         session_key_id = _extract_session_key_id_from_card(agent1_card)
-
-        #         agent1_reply_text = await _agent2_call_agent1(
-        #             httpx_client=httpx_client,
-        #             agent1_card=agent1_card,
-        #             user_text=user_text,
-        #         )
-
-        #     out = "\n".join([
-        #         "[Agent2] Read sessionKeyId from Agent1 card:",
-        #         f"sessionKeyId={session_key_id}",
-        #         "",
-        #         "[Agent2] Forwarded message to Agent1:",
-        #         f"user_text={user_text}",
-        #         "",
-        #         "[Agent2] Agent1 replied:",
-        #         agent1_reply_text,
-        #     ])
-            
-        #     try:
-        #         keys = await asyncio.to_thread(_fetch_session_keys_blocking, CONFIG_PATH, session_key_id)
-        #         out += f"\ncipherKey_b64: {keys[0]['cipherKey_b64']}"
-        #     except Exception as e:
-        #         await event_queue.enqueue_event(
-        #             new_agent_text_message(
-        #                 f"Error in getting session key\n"
-        #                 f"sessionKeyId={session_key_id}\n"
-        #                 f"Failed to fetch session keys from Auth/KDS: {type(e).__name__}: {e}"
-        #             )
-        #         )
-        #         return
-
-        #     await event_queue.enqueue_event(new_agent_text_message(out))
-
-        # except Exception as e:
-        #     await event_queue.enqueue_event(
-        #         new_agent_text_message(f"[Agent2] Error while talking to Agent1: {type(e).__name__}: {e}")
-        #     )
 
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
         raise Exception("cancel not supported")

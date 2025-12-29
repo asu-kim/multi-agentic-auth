@@ -1,12 +1,8 @@
-import os, subprocess
-import shlex
-import json
-import base64
-import asyncio
 import logging
-import httpx
-from typing import Any, Dict, List, Optional
 from uuid import uuid4
+from typing import Any, Dict, List, Optional
+
+import httpx, os, subprocess, shlex, json, base64, asyncio
 
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.client import A2ACardResolver, A2AClient
@@ -20,7 +16,6 @@ from a2a.types import (
 )
 from a2a.utils import new_agent_text_message
 from a2a.utils.constants import AGENT_CARD_WELL_KNOWN_PATH
-
 import hmac, hashlib, secrets, binascii
 
 logger = logging.getLogger(__name__)
@@ -30,16 +25,13 @@ SESSION_EXT_URI = "https://asu-kim.example/ext/sst-session-key/v1"
 AGENT2_BASE_URL = "http://localhost:9998" 
 
 HTTP_TIMEOUT = httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0)
-
+CONFIG_PATH = "configs/net1/lowTrustAgent.config"
 
 def gen_hex_nonce_32():
     return secrets.token_hex(16)
 
 def hmac_sha256_hex(key_bytes: bytes, msg_bytes: bytes) -> str:
     return hmac.new(key_bytes, msg_bytes, hashlib.sha256).hexdigest()
-
-# def _abs(p: str) -> str:
-#     return os.path.abspath(os.path.expanduser(p))
 
 def _parse_last_json_line(stdout: str) -> dict:
     for line in reversed(stdout.strip().splitlines()):
@@ -118,18 +110,18 @@ def _extract_first_text_from_send_message_response(resp: Any) -> str:
         except Exception:
             return f"(Non-success response) {str(root)}"
 
-# def _extract_first_text_from_context(context: RequestContext) -> str:
-#     if not context.message or not context.message.parts:
-#         return ""
+def _extract_task_text_from_context(context: RequestContext) -> str:
+    if not context.message or not context.message.parts:
+        return ""
 
-#     for part in context.message.parts:
-#         if hasattr(part, "text") and isinstance(part, TextPart):
-#             return part.text
+    for part in context.message.parts:
+        if hasattr(part, "text") and isinstance(part, TextPart):
+            return part.text
 
-#         if hasattr(part, "root") and isinstance(part.root, TextPart):
-#             return part.root.text
+        if hasattr(part, "root") and isinstance(part.root, TextPart):
+            return part.root.text
 
-#     return ""
+    return ""
 
 async def agent1_call_agent2(httpx_client: httpx.AsyncClient, agent2_card: AgentCard, user_text: str) -> str:
     client = A2AClient(httpx_client=httpx_client, agent_card=agent2_card)
@@ -158,29 +150,15 @@ class HelloWorldAgent:   # TODO use this to get session key
 
 class HelloWorldAgentExecutor(AgentExecutor):
     "An agent who has session Key Id in their AgentCard"
-    def __init__(self, card: AgentCard, config_path: Optional[str] = None):
+    def __init__(self, card: AgentCard):
         self.agent = HelloWorldAgent()
         self._card = card
-        self.config_path = (
-            os.environ.get("KDS_CONFIG_PATH")
-            or config_path
-            or "configs/net1/lowTrustAgent.config"
-        )
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:   
-        # if key_id is None:
-        #     result = await self.agent.invoke()
-        #     await event_queue.enqueue_event(
-        #         new_agent_text_message(
-        #             f"{result}\n(no session key id in the agent card)"
-        #         )
-        #     )
-        #     return
-        
-        session_key_id = int(context.message.parts[0].root.text)
+        session_key_id = int(_extract_task_text_from_context(context))
 
         try:
-            keys = await asyncio.to_thread(_fetch_session_keys_blocking, self.config_path, session_key_id)
+            keys = await asyncio.to_thread(_fetch_session_keys_blocking, CONFIG_PATH, session_key_id)
         except Exception as e:
             await event_queue.enqueue_event(
                 new_agent_text_message(
@@ -192,8 +170,8 @@ class HelloWorldAgentExecutor(AgentExecutor):
             return
         
         session_key_value = keys[0]['cipherKey_b64']
-        nonce1 = gen_hex_nonce_32()
-        hmac1 = hmac_sha256_hex(base64.b64decode(session_key_value), binascii.unhexlify(nonce1))
+        nonce1_from_agent1 = gen_hex_nonce_32()
+        hmac1_agent1 = hmac_sha256_hex(base64.b64decode(session_key_value), binascii.unhexlify(nonce1_from_agent1))
 
         try:
             async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as httpx_client:
@@ -202,7 +180,7 @@ class HelloWorldAgentExecutor(AgentExecutor):
                 agent2_reply_text = await agent1_call_agent2(
                     httpx_client=httpx_client,
                     agent2_card=agent2_card,
-                    user_text=f"Hello1 {session_key_id} {nonce1}",
+                    user_text=f"Hello1 {session_key_id} {nonce1_from_agent1}",
                 )
         except Exception as e:
             await event_queue.enqueue_event(
@@ -217,16 +195,16 @@ class HelloWorldAgentExecutor(AgentExecutor):
             return
         
         hmac1_agent2 = agent2_reply_text_parts[1]
-        nonce2 = agent2_reply_text_parts[2]
+        nonce2_from_agent2 = agent2_reply_text_parts[2]
         
-        ok = hmac.compare_digest(hmac1, hmac1_agent2) 
+        ok = hmac.compare_digest(hmac1_agent1, hmac1_agent2) 
         if not ok:
             await event_queue.enqueue_event(
                 new_agent_text_message(f"[Agent1] Hmac1 values are different")
             )
             return
         
-        hmac2 = hmac_sha256_hex(base64.b64decode(session_key_value), binascii.unhexlify(nonce2))
+        hmac2_agent1 = hmac_sha256_hex(base64.b64decode(session_key_value), binascii.unhexlify(nonce2_from_agent2))
         try:
             async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as httpx_client:
                 agent2_card = await _fetch_agent2_card(httpx_client)
@@ -234,7 +212,7 @@ class HelloWorldAgentExecutor(AgentExecutor):
                 agent2_reply_text2 = await agent1_call_agent2(
                     httpx_client=httpx_client,
                     agent2_card=agent2_card,
-                    user_text=f"Hello3 {hmac2}",
+                    user_text=f"Hello3 {hmac2_agent1}",
                 )
         except Exception as e:
             await event_queue.enqueue_event(
@@ -252,8 +230,8 @@ class HelloWorldAgentExecutor(AgentExecutor):
         out = "\n".join([
             "[Agent1] handshake complete",
             f"sessionKeyId={session_key_id}",
-            f"nonce1={nonce1}",
-            f"nonce2={nonce2}",
+            f"nonce1={nonce1_from_agent1}",
+            f"nonce2={nonce2_from_agent2}",
             f"verify_hmac1_ok={ok}",
             f"agent2_verify_reply={result_verifying_hmac2}",
         ])
