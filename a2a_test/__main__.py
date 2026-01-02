@@ -11,7 +11,7 @@ from a2a.types import (
     AgentSkill,
 )
 from agent_executor import (
-    HelloWorldAgentExecutor,  # type: ignore[import-untyped]
+    Agent1Executor,  # type: ignore[import-untyped]
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
 
     request_handler = DefaultRequestHandler(
-        agent_executor=HelloWorldAgentExecutor(card=public_agent_card),
+        agent_executor=Agent1Executor(card=public_agent_card),
         task_store=InMemoryTaskStore(),
     )
 

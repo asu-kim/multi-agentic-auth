@@ -80,7 +80,7 @@ async def main() -> None:
             'message': {
                 'role': 'user',
                 'parts': [
-                    {'kind': 'text', 'text': f"{session_key_id}"}
+                    {'kind': 'text', 'text': f"{session_key_id} Start Handshake."}
                 ],
                 'messageId': uuid4().hex,
             },

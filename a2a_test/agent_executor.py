@@ -42,7 +42,7 @@ def _parse_last_json_line(stdout: str) -> dict:
 
 def _fetch_session_keys_blocking(config_path: str, key_id: int) -> List[Dict[str, Any]]:
     here = os.path.dirname(os.path.abspath(__file__))
-    root_dir = os.environ.get('ROOT', os.path.dirname(here)) 
+    root_dir = os.environ.get('MAA_ROOT', os.path.dirname(here)) 
     agent_dir = os.path.abspath(os.path.join(root_dir, "iotauth/entity/node/example_entities"))
 
     cmd = f"node agent.js {shlex.quote(config_path)} keyId {int(key_id)}"
@@ -143,19 +143,21 @@ async def _fetch_agent2_card(httpx_client: httpx.AsyncClient) -> AgentCard:
     public_card = await resolver.get_agent_card()
     return public_card
 
-class HelloWorldAgent:   # TODO use this to get session key
+class Agent1:  
     async def invoke(self) -> str:
         return "Hello World"
 
-
-class HelloWorldAgentExecutor(AgentExecutor):
+class Agent1Executor(AgentExecutor):
     "An agent who has session Key Id in their AgentCard"
     def __init__(self, card: AgentCard):
-        self.agent = HelloWorldAgent()
+        self.agent = Agent1()
         self._card = card
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:   
-        session_key_id = int(_extract_task_text_from_context(context))
+        incoming = _extract_task_text_from_context(context)
+
+
+        session_key_id = int(incoming.split()[0])
 
         try:
             keys = await asyncio.to_thread(_fetch_session_keys_blocking, CONFIG_PATH, session_key_id)

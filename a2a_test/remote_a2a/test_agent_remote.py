@@ -2,7 +2,7 @@ import logging
 
 from typing import Any
 from uuid import uuid4
-
+import asyncio
 import httpx
 
 from a2a.client import A2ACardResolver, A2AClient
@@ -89,6 +89,4 @@ async def main() -> None:
 
 
 if __name__ == '__main__':
-    import asyncio
-
     asyncio.run(main())

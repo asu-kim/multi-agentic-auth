@@ -43,7 +43,7 @@ def _parse_last_json_line(stdout: str) -> dict:
 
 def _fetch_session_keys_blocking(config_path: str, key_id: int) -> List[Dict[str, Any]]:
     here = os.path.dirname(os.path.abspath(__file__))
-    root_dir = os.environ.get('ROOT', os.path.dirname(os.path.dirname(here))) 
+    root_dir = os.environ.get('MAA_ROOT', os.path.dirname(os.path.dirname(here))) 
     agent_dir = os.path.abspath(os.path.join(root_dir, "iotauth/entity/node/example_entities"))
 
     cmd = f"node website.js {shlex.quote(config_path)} keyId {int(key_id)}"
@@ -161,7 +161,7 @@ class Agent2Executor(AgentExecutor):
                 new_agent_text_message(f"[Agent2] Cannot fetch Agent1's card: {type(e).__name__}: {e}")
             )
         
-        task = _extract_task_text_from_context(context) 
+        task = _extract_task_text_from_context(context)  # e.g. Hello1 {session_key_id} {nonce1_from_agent1}
         task_parts = task.split()
 
         if task_parts[0] == "Hello1":
