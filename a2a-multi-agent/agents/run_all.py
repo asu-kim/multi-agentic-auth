@@ -12,7 +12,7 @@ async def run():
         for role in ("language", "analytics", "robot", "manager"):
             print(f"Starting {role}: {settings.urls[role]}", flush=True)
             processes.append(await asyncio.create_subprocess_exec(
-                sys.executable, "-m", f"capability_team.{role}_agent",
+                sys.executable, "-m", f"agents.{role}_agent",
             ))
         watchers = [asyncio.create_task(process.wait()) for process in processes]
         done, _ = await asyncio.wait(watchers, return_when=asyncio.FIRST_COMPLETED)

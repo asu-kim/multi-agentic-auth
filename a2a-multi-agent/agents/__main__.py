@@ -10,7 +10,7 @@ def main():
     parser.add_argument("role", choices=["manager", "language", "analytics", "robot"])
     parser.add_argument("--host", default="127.0.0.1")
     args = parser.parse_args()
-    module = import_module(f"capability_team.{args.role}_agent.__main__")
+    module = import_module(f"agents.{args.role}_agent.__main__")
     run_server(args.role, module.create_app, ["--host", args.host])
 
 

@@ -20,7 +20,7 @@ startup module, and stored JSON card. The three sub-agents inherit common
 negotiation behavior but have separate instances, offer stores, and servers.
 
 ```text
-capability_team/
+agents/
 ├── manager_agent/
 │   ├── __main__.py                 # Start the manager A2A server
 │   ├── manager_agent.py            # LangGraph discovery and negotiation
@@ -110,7 +110,6 @@ python -m agents.robot_agent
 python -m agents.manager_agent
 ```
 
-The previous `python -m capability_team robot` style and `python -m capability_team.client` also remain supported.
 
 Those are four separate commands for four separate terminals, not a sequential shell script. To use other ports, change `MANAGER_URL`, `LANGUAGE_URL`, `ANALYTICS_URL`, and `ROBOT_URL` in `.env`. Server ports are read from those URLs. Restart affected processes after configuration changes. Exported shell variables take precedence over `.env`; unset an old `TOOL_LLM_URL` export if your edits appear to be ignored.
 
