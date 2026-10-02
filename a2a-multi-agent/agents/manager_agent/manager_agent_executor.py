@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class ManagerAgentExecutor(AgentExecutor):
-    """Receive user requests over A2A and run the manager's discovery graph."""
+    """Receive user requests over A2A and run the manager's autonomous tool loop."""
 
     def __init__(self, agent: ManagerAgent):
         self.agent = agent

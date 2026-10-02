@@ -29,7 +29,7 @@ def main():
     parser = argparse.ArgumentParser(description="Ask the manager to find a capable agent")
     parser.add_argument("query")
     parser.add_argument("--capability", action="append", default=[],
-                        help="Exact required skill ID; repeat for multiple requirements. Skips LLM extraction.")
+                        help="Exact required skill ID; repeat for multiple requirements. The manager still chooses its actions.")
     parser.add_argument("--url", help="Manager's A2A base URL")
     parser.add_argument("--json", action="store_true", help="Print full result and negotiation history")
     args = parser.parse_args()

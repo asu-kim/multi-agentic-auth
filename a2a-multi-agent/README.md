@@ -1,6 +1,6 @@
 # A2A capability discovery team
 
-One LangGraph manager discovers three independent agents from their **A2A Agent Cards**, negotiates suitability, and reports `found` or `not_found` with the negotiation history. All agent-to-agent requests use A2A 0.3 JSON-RPC through the official Python SDK's `ClientFactory` (not deprecated `A2AClient`). Model inference uses your local Ollama OpenAI-compatible API.
+One autonomous LLM manager discovers three independent agents from their **A2A Agent Cards**, negotiates suitability, and reports `found` or `not_found` with the negotiation history. All agent-to-agent requests use A2A 0.3 JSON-RPC through the official Python SDK's `ClientFactory` (not deprecated `A2AClient`). Model inference uses your local Ollama OpenAI-compatible API.
 
 | Agent | Model | Port | Advertised skill IDs |
 | --- | --- | --- | --- |
@@ -23,7 +23,8 @@ negotiation behavior but have separate instances, offer stores, and servers.
 agents/
 ├── manager_agent/
 │   ├── __main__.py                 # Start the manager A2A server
-│   ├── manager_agent.py            # LangGraph discovery and negotiation
+│   ├── manager_agent.py            # LLM-directed tool loop
+│   ├── manager_tools.py            # A2A actions and evidence checks
 │   ├── manager_agent_executor.py   # Handle user A2A requests
 │   └── manager_agent_card.json
 ├── language_agent/
@@ -138,7 +139,7 @@ Expected successful result (IDs and reasoning vary):
 }
 ```
 
-The actual response also includes the original query, discovered agents, and proposal/confirmation attempts. For explicit capability matching without LLM interpretation of the request, add skill IDs:
+The actual response also includes the original query, discovered agents, proposal/confirmation attempts, and executed `manager_actions`. For explicit capability matching without LLM interpretation of the request, add skill IDs:
 
 ```bash
 python -m agents.client \
@@ -162,33 +163,74 @@ python -m agents.client \
   --capability translation --capability picking --json
 ```
 
-Expected outcomes: translation → Language; anomaly detection → Analytics; flying → `not_found`; 20 kg pickup → Robot should decline after its LLM assessment; translation plus picking → `not_found`, because no single agent advertises both. Natural-language extraction and feasibility reasoning depend on the models. Explicit `--capability` IDs bypass manager extraction, but sub-agents still use their LLM to assess the proposal.
+Expected outcomes: translation → Language; anomaly detection → Analytics; flying → `not_found`; 20 kg pickup → Robot should decline after its LLM assessment; translation plus picking → `not_found`, because no single agent advertises both. Natural-language extraction and feasibility reasoning depend on the models. Explicit `--capability` IDs fix the required skills; the manager still uses its LLM
+to choose tools and agents, and sub-agents use their LLM to assess proposals.
 
 Set `ROBOT_AVAILABLE=false` and restart the robot to demonstrate a matching card followed by a negotiation decline. Stop an agent to demonstrate a partial discovery failure.
 
 Client exit codes: `0` for found; `1` for a structured non-success result; `2` for the handled HTTP/configuration errors. The JSON `status` distinguishes `not_found`, `input_required`, and `error`. An unavailable peer is recorded in `attempts`; a result never claims an exhaustive search beyond the configured roster.
 
-## Discovery and negotiation
+## Autonomous discovery and negotiation
 
-```mermaid
-sequenceDiagram
-    participant U as User client
-    participant M as Manager (gpt-oss:20b)
-    participant A as Three A2A sub-agents
-    participant R as Matching agent (llama3.2:3b)
-    U->>M: A2A message/send: desired task
-    M->>A: GET /.well-known/agent-card.json
-    A-->>M: Skills and descriptions
-    M->>M: Extract all required skills; filter cards
-    M->>R: A2A message/send: propose
-    R->>R: LLM assesses task against capabilities and limits
-    R-->>M: Offer + offer ID, or decline
-    M->>R: A2A message/send: confirm offer
-    R-->>M: Confirmed, or decline if stale/unavailable
-    M-->>U: found / not_found, selected agent and attempts
+`gpt-oss:20b` chooses a native tool call on each turn. The manager executes it,
+returns the tool result to the model, and asks for the next action. There is no
+LangGraph or predefined sequence of discovery, interpretation, and negotiation.
+All sub-agent communication remains A2A.
+
+| Tool | Action |
+| --- | --- |
+| `discover_agent(agent_url)` | Fetch one agent's A2A card. The model chooses which address to inspect next. |
+| `set_requirements(capabilities)` | Interpret all desired capabilities; preserve unsupported requirements. |
+| `propose_task(agent_url)` | Send the original task to an agent for an independent decision. |
+| `confirm_offer(agent_url)` | Confirm a stored offer over A2A. |
+| `finish_search(status, agent_url)` | Finish with an evidence-checked result. |
+| `ask_user(question)` | Return a clarification question if the task is ambiguous. |
+
+The model can inspect a promising agent first, negotiate before inspecting the
+remaining agents, retry a connection failure, try another candidate after a
+decline, or stop once it has a confirmed match. The choice and order are made by
+the model. One possible run is:
+
+```text
+Manager LLM -> discover_agent(robot URL)
+A2A card   -> picking, mobility, payload and floor limits
+Manager LLM -> set_requirements(["picking", "mobility"])
+Manager LLM -> propose_task(robot URL)
+Robot LLM  -> offered
+Manager LLM -> confirm_offer(robot URL)
+Robot A2A  -> confirmed
+Manager LLM -> finish_search("found", robot URL)
 ```
 
-The manager's graph is `discover → interpret → negotiate → report`. A vague query goes directly from interpretation to a clarification result. Unmatched requests have no candidate to negotiate with and return `not_found` after card comparison. Multiple matching candidates are tried in roster order until one confirms. A declined or failed candidate does not prevent trying the next.
+The runtime enforces protocol prerequisites: a proposal needs a discovered card
+covering all requirements, and `found` needs a valid confirmed offer. Explicit
+`--capability` values cannot be changed by the model. Inferred requirements can
+be revised before the first proposal; they lock after negotiation starts. A
+`not_found` result requires inspecting the full configured roster and resolving
+matching candidates. Peer failures are reported as an incomplete search.
+
+Use `--json` to see **`manager_actions`**, which records each tool name, arguments,
+and observed result. **`attempts`** continues to record A2A proposals,
+confirmations, and failures. The trace contains executed actions, not private
+model reasoning. The manager may discover only one agent on a successful run,
+so `discovered_agents` need not contain the whole roster.
+
+The defaults are **16 model turns** and **600 seconds per search**. Reaching
+either limit returns `status: "error"` with the collected evidence, rather than
+claiming no agent exists. Adjust these in `.env` and restart the manager:
+
+```dotenv
+MANAGER_MAX_TURNS=16
+MANAGER_TIMEOUT_SECONDS=600
+```
+
+Keep `A2A_TIMEOUT_SECONDS` above `MANAGER_TIMEOUT_SECONDS` so the client can receive
+the final result. More autonomy means more manager model calls, so it can be
+slower than the previous fixed workflow. The model must support native tool
+calling; `gpt-oss:20b` remains the configured manager model. The sub-agents still
+use `llama3.2:3b` for structured feasibility assessments. If the manager asks for
+clarification, send a new request containing the original task and your answer;
+search state is independent per request.
 
 The manager is configured with **addresses only**, not a hardcoded capability routing table. `AGENT_URLS` can supply a comma-separated list of extra agent addresses. Each card exposes abilities in **`skills`**. The A2A `capabilities` field describes transport features such as streaming; it is not the field for robot abilities. This demo advertises non-streaming support and uses synchronous `message/send` exchanges.
 
@@ -232,11 +274,13 @@ Local HTTP clients ignore proxy environment variables. For agents on other hosts
 python -m unittest discover -s tests -v
 ```
 
-Tests exercise actual A2A SDK card discovery and JSON-RPC messaging via ASGI HTTP transports, the LangGraph manager, offers and confirmations, unavailable agents, incorrect confirmations, unsupported capabilities, and inference errors. Model outputs are deterministic test doubles; these tests do not download models or validate real model reasoning.
+Tests exercise actual A2A SDK card discovery and JSON-RPC messaging via ASGI HTTP transports, the autonomous manager, offers and confirmations, alternate model-selected action orders, early completion,
+retrying discovery, switching candidates after declines, invalid tool calls,
+unconfirmed success attempts, concurrent requests, deadlines, and inference errors. Model outputs are deterministic test doubles; these tests do not download models or validate real model reasoning.
 
 See the folder map above. Start with `manager_agent/manager_agent.py` for the
-manager's graph, and with each sub-agent's `*_agent.py` and `*_agent_card.json`
+manager's decision loop, and with each sub-agent's `*_agent.py` and `*_agent_card.json`
 for its identity and abilities. Its `*_agent_executor.py` adapts A2A messages,
 while its `__main__.py` wires up the model and starts its server.
 
-References: [A2A 0.3 specification](https://a2a-protocol.org/v0.3.0/specification/), [Ollama API compatibility](https://docs.ollama.com/api/openai-compatibility), [Llama 3.2 model tags](https://ollama.com/library/llama3.2).
+References: [A2A 0.3 specification](https://a2a-protocol.org/v0.3.0/specification/), [Ollama tool calling](https://docs.ollama.com/capabilities/tool-calling), [Ollama API compatibility](https://docs.ollama.com/api/openai-compatibility), [Llama 3.2 model tags](https://ollama.com/library/llama3.2).

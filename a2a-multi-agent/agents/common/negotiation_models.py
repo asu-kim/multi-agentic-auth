@@ -13,11 +13,6 @@ class SearchRequest(StrictModel):
     required_capabilities: list[str] = Field(default_factory=list)
 
 
-class SearchPlan(StrictModel):
-    required_capabilities: list[str]
-    clarification: str | None
-
-
 class Assessment(StrictModel):
     can_help: bool
     reason: str
@@ -65,3 +60,5 @@ class SearchResult(StrictModel):
     summary: str
     discovered_agents: list[dict] = Field(default_factory=list)
     attempts: list[Attempt] = Field(default_factory=list)
+    # Executed tool actions and observations, not the model's private reasoning.
+    manager_actions: list[dict] = Field(default_factory=list)

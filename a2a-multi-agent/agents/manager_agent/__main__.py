@@ -12,7 +12,8 @@ def build_app(agent: ManagerAgent, http=None):
 
 def create_app(settings: Settings):
     http, llm = create_model(settings, settings.manager_model)
-    agent = ManagerAgent(settings.agent_urls, A2APeer(http), llm, url=settings.urls["manager"])
+    agent = ManagerAgent(settings.agent_urls, A2APeer(http), llm, url=settings.urls["manager"],
+                         max_turns=settings.manager_max_turns, timeout=settings.manager_timeout)
     return build_app(agent, http)
 
 

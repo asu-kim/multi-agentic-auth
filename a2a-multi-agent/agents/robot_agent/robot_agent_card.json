@@ -11,7 +11,7 @@
     "text/plain",
     "application/json"
   ],
-  "description": "Robot with object picking and ground mobility capabilities. Limits: Picking payload at most 2 kg. Flat indoor floors only. No flying, stairs, or outdoor travel. This demo negotiates suitability only; it has no connection to physical robot hardware.",
+  "description": "Robot with object picking and ground mobility capabilities. Limits: Picking payload at most 2 kg. Flat indoor floors only. No flying, stairs, or outdoor travel.",
   "name": "Robot Agent",
   "preferredTransport": "JSONRPC",
   "protocolVersion": "0.3.0",

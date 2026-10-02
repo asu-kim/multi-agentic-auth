@@ -16,6 +16,8 @@ class Settings:
     llm_timeout: float
     a2a_timeout: float
     robot_available: bool
+    manager_max_turns: int = 16
+    manager_timeout: float = 600
 
     @classmethod
     def from_env(cls):
@@ -34,6 +36,10 @@ class Settings:
             parsed = urlsplit(url)
             if parsed.scheme not in {"http", "https"} or not parsed.hostname:
                 raise ValueError(f"Invalid server URL: {url}")
+        manager_max_turns = int(os.getenv("MANAGER_MAX_TURNS", "16"))
+        manager_timeout = float(os.getenv("MANAGER_TIMEOUT_SECONDS", "600"))
+        if manager_max_turns < 1 or manager_timeout <= 0:
+            raise ValueError("MANAGER_MAX_TURNS and MANAGER_TIMEOUT_SECONDS must be positive.")
         return cls(
             llm_url=llm_url, api_key=os.getenv("API_KEY", "ollama"),
             manager_model=os.getenv("MANAGER_MODEL", "gpt-oss:20b"),
@@ -42,4 +48,5 @@ class Settings:
             llm_timeout=float(os.getenv("LLM_TIMEOUT_SECONDS", "180")),
             a2a_timeout=float(os.getenv("A2A_TIMEOUT_SECONDS", "900")),
             robot_available=os.getenv("ROBOT_AVAILABLE", "true").lower() in {"1", "true", "yes"},
+            manager_max_turns=manager_max_turns, manager_timeout=manager_timeout,
         )
