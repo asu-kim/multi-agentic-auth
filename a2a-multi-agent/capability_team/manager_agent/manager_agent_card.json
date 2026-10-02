@@ -1,0 +1,33 @@
+{
+  "capabilities": {
+    "pushNotifications": false,
+    "streaming": false
+  },
+  "defaultInputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "description": "Discover agents from their cards and negotiate a capability match.",
+  "name": "Manager Agent",
+  "preferredTransport": "JSONRPC",
+  "protocolVersion": "0.3.0",
+  "skills": [
+    {
+      "description": "Find a single agent satisfying all requested capabilities and confirm its suitability.",
+      "examples": [
+        "Find a robot that can pick up a box and move it to station B."
+      ],
+      "id": "agent_discovery",
+      "name": "Agent discovery and negotiation",
+      "tags": [
+        "agent_discovery"
+      ]
+    }
+  ],
+  "url": "http://127.0.0.1:10000/",
+  "version": "0.1.0"
+}

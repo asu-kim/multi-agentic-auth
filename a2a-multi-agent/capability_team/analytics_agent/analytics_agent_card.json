@@ -1,0 +1,44 @@
+{
+  "capabilities": {
+    "pushNotifications": false,
+    "streaming": false
+  },
+  "defaultInputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "description": "Numerical statistics and anomaly detection specialist. Limits: User-supplied numerical data only; no live sensors or physical tasks.",
+  "name": "Analytics Agent",
+  "preferredTransport": "JSONRPC",
+  "protocolVersion": "0.3.0",
+  "skills": [
+    {
+      "description": "Calculate descriptive statistics for numerical data.",
+      "examples": [
+        "Calculate average daily sales."
+      ],
+      "id": "statistics",
+      "name": "Statistics",
+      "tags": [
+        "statistics"
+      ]
+    },
+    {
+      "description": "Identify unusual values in supplied numerical data.",
+      "examples": [
+        "Find outliers in these sensor readings."
+      ],
+      "id": "anomaly_detection",
+      "name": "Anomaly detection",
+      "tags": [
+        "anomaly_detection"
+      ]
+    }
+  ],
+  "url": "http://127.0.0.1:10002/",
+  "version": "0.1.0"
+}

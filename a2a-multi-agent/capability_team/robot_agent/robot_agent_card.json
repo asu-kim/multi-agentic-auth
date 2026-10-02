@@ -1,0 +1,44 @@
+{
+  "capabilities": {
+    "pushNotifications": false,
+    "streaming": false
+  },
+  "defaultInputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "description": "Robot with object picking and ground mobility capabilities. Limits: Picking payload at most 2 kg. Flat indoor floors only. No flying, stairs, or outdoor travel. This demo negotiates suitability only; it has no connection to physical robot hardware.",
+  "name": "Robot Agent",
+  "preferredTransport": "JSONRPC",
+  "protocolVersion": "0.3.0",
+  "skills": [
+    {
+      "description": "Grasp and pick up objects weighing at most 2 kg.",
+      "examples": [
+        "Pick up a 1 kg box."
+      ],
+      "id": "picking",
+      "name": "Object picking",
+      "tags": [
+        "picking"
+      ]
+    },
+    {
+      "description": "Move on flat indoor floors and carry picked objects.",
+      "examples": [
+        "Move a box to station B."
+      ],
+      "id": "mobility",
+      "name": "Ground mobility",
+      "tags": [
+        "mobility"
+      ]
+    }
+  ],
+  "url": "http://127.0.0.1:10003/",
+  "version": "0.1.0"
+}

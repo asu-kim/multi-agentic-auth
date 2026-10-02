@@ -1,0 +1,44 @@
+{
+  "capabilities": {
+    "pushNotifications": false,
+    "streaming": false
+  },
+  "defaultInputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "description": "Text translation and summarization specialist. Limits: Written text only; no physical tasks, live audio, or certified translations.",
+  "name": "Language Agent",
+  "preferredTransport": "JSONRPC",
+  "protocolVersion": "0.3.0",
+  "skills": [
+    {
+      "description": "Translate written text between languages.",
+      "examples": [
+        "Translate this message to Spanish."
+      ],
+      "id": "translation",
+      "name": "Translation",
+      "tags": [
+        "translation"
+      ]
+    },
+    {
+      "description": "Summarize written documents and messages.",
+      "examples": [
+        "Summarize this report."
+      ],
+      "id": "summarization",
+      "name": "Summarization",
+      "tags": [
+        "summarization"
+      ]
+    }
+  ],
+  "url": "http://127.0.0.1:10001/",
+  "version": "0.1.0"
+}
