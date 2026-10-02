@@ -1,5 +1,5 @@
-from capability_team.common.negotiation_executor import NegotiationExecutor
-from capability_team.analytics_agent.analytics_agent import AnalyticsAgent
+from agents.common.negotiation_executor import NegotiationExecutor
+from agents.analytics_agent.analytics_agent import AnalyticsAgent
 
 
 class AnalyticsAgentExecutor(NegotiationExecutor):

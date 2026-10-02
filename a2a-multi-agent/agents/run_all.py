@@ -1,7 +1,7 @@
 import asyncio
 import sys
 
-from capability_team.common.settings import Settings
+from agents.common.settings import Settings
 
 
 async def run():

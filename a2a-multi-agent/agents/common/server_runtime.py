@@ -9,8 +9,8 @@ from a2a.server.apps import A2AStarletteApplication
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore
 
-from capability_team.common.ollama_client import OllamaJSON
-from capability_team.common.settings import Settings
+from agents.common.ollama_client import OllamaJSON
+from agents.common.settings import Settings
 
 logger = logging.getLogger(__name__)
 

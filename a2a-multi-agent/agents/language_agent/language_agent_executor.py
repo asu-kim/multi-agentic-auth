@@ -1,5 +1,5 @@
-from capability_team.common.negotiation_executor import NegotiationExecutor
-from capability_team.language_agent.language_agent import LanguageAgent
+from agents.common.negotiation_executor import NegotiationExecutor
+from agents.language_agent.language_agent import LanguageAgent
 
 
 class LanguageAgentExecutor(NegotiationExecutor):

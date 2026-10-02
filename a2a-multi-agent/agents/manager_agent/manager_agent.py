@@ -6,8 +6,8 @@ from uuid import uuid4
 from a2a.types import AgentCard
 from langgraph.graph import END, START, StateGraph
 
-from capability_team.common.agent_card_loader import load_agent_card
-from capability_team.common.negotiation_models import (
+from agents.common.agent_card_loader import load_agent_card
+from agents.common.negotiation_models import (
     Attempt, NegotiationReply, NegotiationRequest, SearchPlan, SearchRequest,
     SearchResult, SelectedAgent,
 )

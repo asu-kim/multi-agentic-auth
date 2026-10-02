@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from uuid import uuid4
 
 from a2a.types import AgentCard
-from capability_team.common.negotiation_models import Assessment, NegotiationReply, NegotiationRequest
+from agents.common.negotiation_models import Assessment, NegotiationReply, NegotiationRequest
 
 
 @dataclass

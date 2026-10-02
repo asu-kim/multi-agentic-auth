@@ -1,9 +1,9 @@
-"""Start this agent: python -m capability_team.manager_agent"""
-from capability_team.common.a2a_client import A2APeer
-from capability_team.common.server_runtime import build_a2a_app, create_model, run_server
-from capability_team.common.settings import Settings
-from capability_team.manager_agent.manager_agent import ManagerAgent
-from capability_team.manager_agent.manager_agent_executor import ManagerAgentExecutor
+"""Start this agent: python -m agents.manager_agent"""
+from agents.common.a2a_client import A2APeer
+from agents.common.server_runtime import build_a2a_app, create_model, run_server
+from agents.common.settings import Settings
+from agents.manager_agent.manager_agent import ManagerAgent
+from agents.manager_agent.manager_agent_executor import ManagerAgentExecutor
 
 
 def build_app(agent: ManagerAgent, http=None):

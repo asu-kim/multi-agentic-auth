@@ -6,9 +6,9 @@ from uuid import uuid4
 
 import httpx
 
-from capability_team.common.settings import Settings
-from capability_team.common.negotiation_models import SearchRequest, SearchResult
-from capability_team.common.a2a_client import A2APeer
+from agents.common.settings import Settings
+from agents.common.negotiation_models import SearchRequest, SearchResult
+from agents.common.a2a_client import A2APeer
 
 
 async def run(args):

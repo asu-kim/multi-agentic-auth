@@ -50,7 +50,7 @@ capability_team/
 │   ├── ollama_client.py
 │   ├── server_runtime.py
 │   └── settings.py
-├── manager_client.py              # Send a request to the manager
+├── client.py              # Send a request to the manager
 ├── check_ollama_running.py
 └── run_all.py                      # Start all four processes
 ```
@@ -90,7 +90,7 @@ export OLLAMA_HOST=127.0.0.1:11435
 ollama list
 ollama pull llama3.2:3b
 ollama pull gpt-oss:20b
-python -m capability_team.check_ollama_running
+python -m agents.check_ollama_running
 ```
 
 Your existing Ollama server must stay running. You can exit an `ollama run` chat with `/bye`; the interactive chat is not required. `llama3.2:3b` is the actual Ollama 3B Llama tag. Change `SUBAGENT_MODEL` if you have a custom model alias.
@@ -98,16 +98,16 @@ Your existing Ollama server must stay running. You can exit an `ollama run` chat
 Stop the old demo agent if it occupies port 10000, then start the complete team:
 
 ```bash
-python -m capability_team.run_all
+python -m agents.run_all
 ```
 
 Wait for all four servers to report startup complete. Ctrl+C stops the team. If one server exits, the launcher stops the others. Alternatively, run each in its own terminal with the same virtual environment:
 
 ```bash
-python -m capability_team.language_agent
-python -m capability_team.analytics_agent
-python -m capability_team.robot_agent
-python -m capability_team.manager_agent
+python -m agents.language_agent
+python -m agents.analytics_agent
+python -m agents.robot_agent
+python -m agents.manager_agent
 ```
 
 The previous `python -m capability_team robot` style and `python -m capability_team.client` also remain supported.
@@ -119,7 +119,7 @@ Those are four separate commands for four separate terminals, not a sequential s
 In a second terminal, activate your virtual environment and enter the project folder.
 
 ```bash
-python -m capability_team.manager_client \
+python -m agents.client \
   "Find an agent that can pick up a 1 kg box and move it to station B on a flat indoor floor." --json
 ```
 
@@ -142,23 +142,23 @@ Expected successful result (IDs and reasoning vary):
 The actual response also includes the original query, discovered agents, and proposal/confirmation attempts. For explicit capability matching without LLM interpretation of the request, add skill IDs:
 
 ```bash
-python -m capability_team.manager_client \
+python -m agents.client \
   "Pick up a 1 kg box and carry it indoors to station B." \
   --capability picking --capability mobility --json
 
-python -m capability_team.manager_client \
+python -m agents.client \
   "Find an agent to translate written English text to Spanish." --json
 
-python -m capability_team.manager_client \
+python -m agents.client \
   "Find an agent to detect anomalies in supplied sensor readings." --json
 
-python -m capability_team.manager_client \
+python -m agents.client \
   "Find an agent that can fly." --capability flying --json
 
-python -m capability_team.manager_client \
+python -m agents.client \
   "Pick up a 20 kg box." --capability picking --json
 
-python -m capability_team.manager_client \
+python -m agents.client \
   "Find one agent that translates text and picks up boxes." \
   --capability translation --capability picking --json
 ```

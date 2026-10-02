@@ -2,7 +2,7 @@
 import argparse
 from importlib import import_module
 
-from capability_team.common.server_runtime import run_server
+from agents.common.server_runtime import run_server
 
 
 def main():

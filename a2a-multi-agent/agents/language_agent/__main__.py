@@ -1,8 +1,8 @@
-"""Start this agent: python -m capability_team.language_agent"""
-from capability_team.common.server_runtime import build_a2a_app, create_model, run_server
-from capability_team.common.settings import Settings
-from capability_team.language_agent.language_agent import LanguageAgent
-from capability_team.language_agent.language_agent_executor import LanguageAgentExecutor
+"""Start this agent: python -m agents.language_agent"""
+from agents.common.server_runtime import build_a2a_app, create_model, run_server
+from agents.common.settings import Settings
+from agents.language_agent.language_agent import LanguageAgent
+from agents.language_agent.language_agent_executor import LanguageAgentExecutor
 
 
 def build_app(agent: LanguageAgent, http=None):

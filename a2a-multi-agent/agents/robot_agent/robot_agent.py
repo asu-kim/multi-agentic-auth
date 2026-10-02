@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from capability_team.common.agent_card_loader import load_agent_card
-from capability_team.common.negotiating_agent import NegotiatingAgent
+from agents.common.agent_card_loader import load_agent_card
+from agents.common.negotiating_agent import NegotiatingAgent
 
 
 class RobotAgent(NegotiatingAgent):

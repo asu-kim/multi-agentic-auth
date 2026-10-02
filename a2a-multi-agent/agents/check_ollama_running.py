@@ -3,7 +3,7 @@ import sys
 
 import httpx
 
-from capability_team.common.settings import Settings
+from agents.common.settings import Settings
 
 
 async def main():

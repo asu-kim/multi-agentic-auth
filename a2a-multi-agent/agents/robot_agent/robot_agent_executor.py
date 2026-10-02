@@ -1,5 +1,5 @@
-from capability_team.common.negotiation_executor import NegotiationExecutor
-from capability_team.robot_agent.robot_agent import RobotAgent
+from agents.common.negotiation_executor import NegotiationExecutor
+from agents.robot_agent.robot_agent import RobotAgent
 
 
 class RobotAgentExecutor(NegotiationExecutor):

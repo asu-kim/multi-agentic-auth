@@ -1,8 +1,8 @@
-"""Start this agent: python -m capability_team.analytics_agent"""
-from capability_team.common.server_runtime import build_a2a_app, create_model, run_server
-from capability_team.common.settings import Settings
-from capability_team.analytics_agent.analytics_agent import AnalyticsAgent
-from capability_team.analytics_agent.analytics_agent_executor import AnalyticsAgentExecutor
+"""Start this agent: python -m agents.analytics_agent"""
+from agents.common.server_runtime import build_a2a_app, create_model, run_server
+from agents.common.settings import Settings
+from agents.analytics_agent.analytics_agent import AnalyticsAgent
+from agents.analytics_agent.analytics_agent_executor import AnalyticsAgentExecutor
 
 
 def build_app(agent: AnalyticsAgent, http=None):

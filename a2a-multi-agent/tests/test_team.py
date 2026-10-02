@@ -5,18 +5,18 @@ from unittest.mock import patch
 
 import httpx
 
-from capability_team.common.settings import Settings
-from capability_team.common.ollama_client import ModelError, OllamaJSON
-from capability_team.manager_agent.manager_agent import ManagerAgent
-from capability_team.manager_agent.__main__ import build_app as build_manager_app
-from capability_team.language_agent.language_agent import LanguageAgent
-from capability_team.language_agent.__main__ import build_app as build_language_app
-from capability_team.analytics_agent.analytics_agent import AnalyticsAgent
-from capability_team.analytics_agent.__main__ import build_app as build_analytics_app
-from capability_team.robot_agent.robot_agent import RobotAgent
-from capability_team.robot_agent.__main__ import build_app as build_robot_app
-from capability_team.common.negotiation_models import Assessment, NegotiationRequest, SearchPlan, SearchRequest, SearchResult
-from capability_team.common.a2a_client import A2APeer
+from agents.common.settings import Settings
+from agents.common.ollama_client import ModelError, OllamaJSON
+from agents.manager_agent.manager_agent import ManagerAgent
+from agents.manager_agent.__main__ import build_app as build_manager_app
+from agents.language_agent.language_agent import LanguageAgent
+from agents.language_agent.__main__ import build_app as build_language_app
+from agents.analytics_agent.analytics_agent import AnalyticsAgent
+from agents.analytics_agent.__main__ import build_app as build_analytics_app
+from agents.robot_agent.robot_agent import RobotAgent
+from agents.robot_agent.__main__ import build_app as build_robot_app
+from agents.common.negotiation_models import Assessment, NegotiationRequest, SearchPlan, SearchRequest, SearchResult
+from agents.common.a2a_client import A2APeer
 
 
 class FakeLLM:
@@ -235,12 +235,12 @@ class ModelClientTests(unittest.IsolatedAsyncioTestCase):
 
 class ConfigurationTests(unittest.TestCase):
     def test_missing_v1_rejected_early(self):
-        with patch("capability_team.common.settings.load_dotenv"), patch.dict("os.environ", {"TOOL_LLM_URL": "http://127.0.0.1:11435"}):
+        with patch("agents.common.settings.load_dotenv"), patch.dict("os.environ", {"TOOL_LLM_URL": "http://127.0.0.1:11435"}):
             with self.assertRaisesRegex(ValueError, "must end in /v1"):
                 Settings.from_env()
 
     def test_model_defaults_and_robot_skills(self):
-        with patch("capability_team.common.settings.load_dotenv"), patch.dict("os.environ", {}, clear=True):
+        with patch("agents.common.settings.load_dotenv"), patch.dict("os.environ", {}, clear=True):
             settings = Settings.from_env()
         self.assertEqual(settings.subagent_model, "llama3.2:3b")
         self.assertEqual(settings.manager_model, "gpt-oss:20b")

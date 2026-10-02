@@ -1,8 +1,8 @@
-"""Start this agent: python -m capability_team.robot_agent"""
-from capability_team.common.server_runtime import build_a2a_app, create_model, run_server
-from capability_team.common.settings import Settings
-from capability_team.robot_agent.robot_agent import RobotAgent
-from capability_team.robot_agent.robot_agent_executor import RobotAgentExecutor
+"""Start this agent: python -m agents.robot_agent"""
+from agents.common.server_runtime import build_a2a_app, create_model, run_server
+from agents.common.settings import Settings
+from agents.robot_agent.robot_agent import RobotAgent
+from agents.robot_agent.robot_agent_executor import RobotAgentExecutor
 
 
 def build_app(agent: RobotAgent, http=None):
