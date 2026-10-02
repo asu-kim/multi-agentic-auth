@@ -38,6 +38,11 @@ For an ambiguous request use ask_user with a specific question. Finish through
 finish_search, not an ordinary text response. This system negotiates suitability;
 it does not execute physical work. Prefer one tool call per turn and observe its
 result before deciding what to do next. Keep calls efficient within the budget.
+Include decision_summary in each tool call: one brief user-facing sentence
+explaining the action's purpose using the user's task or evidence already observed.
+For example: "The robot offered to help, so I will request confirmation."
+Do not include private internal deliberation, step-by-step reasoning, or outcomes
+that have not happened. Keep the summary under 240 characters.
 """
 
 
@@ -65,6 +70,11 @@ class ManagerAgent:
                     messages.append(message)
                     calls = message.get("tool_calls", [])
                     if not calls:
+                        summary = "No tool action was returned; requesting a tool selection."
+                        logger.info("Manager turn %d [no_tool]: %s", turn, summary)
+                        actions.actions.append({"turn": turn, "tool": "no_tool",
+                            "decision_summary": summary, "summary_source": "system",
+                            "arguments": {}, "result": {"error": "No tool action was returned."}})
                         messages.append({"role": "user", "content":
                             "Choose a tool. Use finish_search for an evidence-backed result, or ask_user for clarification."})
                         continue
@@ -73,17 +83,26 @@ class ManagerAgent:
                         name = call["function"]["name"]
                         raw = call["function"]["arguments"]
                         arguments = {}
+                        summary = "No brief decision summary was provided for this action."
+                        summary_source = "system"
                         try:
                             arguments = json.loads(raw)
                             if not isinstance(arguments, dict):
                                 raise ValueError("Tool arguments must be a JSON object.")
+                            supplied_summary = arguments.get("decision_summary")
+                            if isinstance(supplied_summary, str) and supplied_summary.strip():
+                                summary = " ".join(supplied_summary.split())[:240]
+                                summary_source = "model"
+                            logger.info("Manager turn %d [%s] (%s): %s", turn, name, summary_source, summary)
                             if actions.finished is not None:
                                 result = {"error": "The search already finished; this additional action was not executed."}
                             else:
                                 result = await actions.execute(name, arguments)
                         except (ValueError, TypeError) as exc:
                             result = {"error": str(exc)}
+                            logger.info("Manager turn %d [%s] rejected: %s", turn, name, exc)
                         actions.actions.append({"turn": turn, "tool": name,
+                            "decision_summary": summary, "summary_source": summary_source,
                             "arguments": arguments if isinstance(arguments, dict) else {"invalid": raw},
                             "result": result})
                         messages.append({"role": "tool", "tool_call_id": call["id"],

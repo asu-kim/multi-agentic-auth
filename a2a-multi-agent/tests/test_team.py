@@ -1,8 +1,10 @@
 import asyncio
 import copy
+import io
 import json
 import time
 import unittest
+from contextlib import redirect_stdout
 from unittest.mock import patch
 
 import httpx
@@ -19,6 +21,7 @@ from agents.robot_agent.robot_agent import RobotAgent
 from agents.robot_agent.__main__ import build_app as build_robot_app
 from agents.common.negotiation_models import Assessment, NegotiationRequest, SearchRequest, SearchResult
 from agents.common.a2a_client import A2APeer
+from agents.client import print_result
 
 LANGUAGE = 'http://127.0.0.1:10001/'
 ANALYTICS = 'http://127.0.0.1:10002/'
@@ -141,6 +144,31 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
         result = await self.ask('Pick up a 1 kg box and move it indoors.')
         self.assertEqual(result.status, 'found')
         self.assertEqual(result.manager_actions[0]['tool'], 'set_requirements')
+
+    async def test_brief_decision_summary_is_logged_and_returned(self):
+        summary = 'I will inspect the robot card to check its advertised abilities.'
+        self.manager_llm.script[0] = tool('discover_agent', agent_url=ROBOT, decision_summary=summary)
+        with self.assertLogs('agents.manager_agent.manager_agent', level='INFO') as logs:
+            result = await self.ask('Pick up a box and move it indoors')
+        self.assertEqual(result.status, 'found')
+        self.assertEqual(result.manager_actions[0]['decision_summary'], summary)
+        self.assertEqual(result.manager_actions[0]['summary_source'], 'model')
+        self.assertEqual(result.manager_actions[1]['summary_source'], 'system')
+        self.assertTrue(any(summary in line for line in logs.output))
+        output = io.StringIO()
+        with redirect_stdout(output):
+            print_result(result, trace=True)
+        self.assertIn('Turn 1 [discover_agent]: ' + summary, output.getvalue())
+        self.assertIn('(system)', output.getvalue())
+
+    async def test_trace_flag_keeps_json_output_valid(self):
+        result = await self.ask('Pick up a box and move it indoors')
+        output = io.StringIO()
+        with redirect_stdout(output):
+            print_result(result, as_json=True, trace=True)
+        parsed = json.loads(output.getvalue())
+        self.assertEqual(parsed['status'], 'found')
+        self.assertIn('decision_summary', parsed['manager_actions'][0])
 
     async def test_full_a2a_search_with_native_ollama_tool_protocol(self):
         director = ScriptedManagerLLM(match_script())
@@ -301,6 +329,9 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(result.selected_agent)
         self.assertIn('3-turn limit', result.summary)
         self.assertEqual(len(self.manager_llm.calls), 3)
+        self.assertEqual(len(result.manager_actions), 3)
+        self.assertTrue(all(a['summary_source'] == 'system' for a in result.manager_actions))
+        self.assertNotIn('Found a flying robot; task done.', json.dumps(result.manager_actions))
 
     async def test_total_deadline_is_enforced(self):
         async def slow_chat(messages, tools):

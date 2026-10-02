@@ -17,20 +17,27 @@ def normalize_capabilities(values: list[str]) -> list[str]:
                              for value in values if value.strip()))
 
 
-class AgentAddress(StrictModel):
+class ToolArguments(StrictModel):
+    decision_summary: str = Field(default="", max_length=240, description=(
+        "One short user-facing sentence describing the purpose of this action, based on the request "
+        "or an observed tool result. Do not include internal deliberation or claim an unobserved outcome."
+    ))
+
+
+class AgentAddress(ToolArguments):
     agent_url: str = Field(description="An address from the configured agent roster.")
 
 
-class Requirements(StrictModel):
+class Requirements(ToolArguments):
     capabilities: list[str] = Field(min_length=1, description="ALL required skill IDs, including unsupported abilities.")
 
 
-class Finish(StrictModel):
+class Finish(ToolArguments):
     status: Literal["found", "not_found"]
     agent_url: str | None = Field(description="Confirmed agent URL for found; null for not_found.")
 
 
-class Clarification(StrictModel):
+class Clarification(ToolArguments):
     question: str = Field(min_length=1, max_length=2000)
 
 

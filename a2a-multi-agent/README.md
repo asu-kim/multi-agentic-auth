@@ -210,10 +210,40 @@ be revised before the first proposal; they lock after negotiation starts. A
 matching candidates. Peer failures are reported as an incomplete search.
 
 Use `--json` to see **`manager_actions`**, which records each tool name, arguments,
-and observed result. **`attempts`** continues to record A2A proposals,
+brief `decision_summary`, `summary_source`, and observed result. **`attempts`** continues to record A2A proposals,
 confirmations, and failures. The trace contains executed actions, not private
 model reasoning. The manager may discover only one agent on a successful run,
 so `discovered_agents` need not contain the whole roster.
+
+### Brief explanations for each turn
+
+Each tool call asks the manager model for a user-facing explanation of its purpose
+in one sentence (at most 240 characters). For example: "The robot offered to help,
+so I will request confirmation." This is a brief decision summary, not a transcript
+of private internal reasoning, and it describes intent rather than proving the
+action succeeded. The tool result and `attempts` provide the execution evidence.
+
+Watch the **manager server terminal** for live summaries as tool calls start.
+To show summaries in the client after the request finishes:
+
+```bash
+python -m agents.client "Find an agent to pick up a 1 kg box and move it indoors." --trace
+```
+
+Example output (wording and tool order depend on the model):
+
+```text
+Turn 1 [discover_agent]: I will inspect this agent's card for the required skills.
+Turn 2 [set_requirements]: The task requires picking and mobility.
+Turn 3 [propose_task]: The card matches, so I will ask the robot whether it can help.
+Turn 4 [confirm_offer]: The robot offered to help, so I will request confirmation.
+Turn 5 [finish_search]: The robot confirmed the offer, so I can report a match.
+```
+
+If the model omits its summary, the trace records a system-labeled fallback rather
+than inventing an explanation. Turns with no tool call also get a system-labeled
+entry. `--json` includes these fields and remains valid JSON even with `--trace`.
+The client receives the trace after completion; A2A streaming remains disabled.
 
 The defaults are **16 model turns** and **600 seconds per search**. Reaching
 either limit returns `status: "error"` with the collected evidence, rather than
