@@ -63,8 +63,11 @@ class OllamaJSON:
     async def chat(self, messages: list[dict], tools: list[dict]) -> dict:
         """Let the manager model select tools; preserve tool IDs for the next turn."""
         message = await self._completion(messages, tools=tools, tool_choice="auto", parallel_tool_calls=False)
-        # Only replay protocol fields, not model-specific private reasoning fields.
+        # Preserve provider-emitted reasoning verbatim for observation by the manager.
         assistant = {"role": "assistant", "content": message.get("content") or ""}
+        for field in ("reasoning", "reasoning_content", "thinking"):
+            if isinstance(message.get(field), str):
+                assistant[field] = message[field]
         calls = message.get("tool_calls") or []
         if not isinstance(calls, list) or len(calls) > 8:
             raise ModelError("Expected at most eight tool calls in a model response")

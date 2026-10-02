@@ -209,41 +209,36 @@ be revised before the first proposal; they lock after negotiation starts. A
 `not_found` result requires inspecting the full configured roster and resolving
 matching candidates. Peer failures are reported as an incomplete search.
 
-Use `--json` to see **`manager_actions`**, which records each tool name, arguments,
-brief `decision_summary`, `summary_source`, and observed result. **`attempts`** continues to record A2A proposals,
-confirmations, and failures. The trace contains executed actions, not private
-model reasoning. The manager may discover only one agent on a successful run,
-so `discovered_agents` need not contain the whole roster.
+Use `--json` to see **`manager_actions`** (tool names, arguments and observed
+results), **`attempts`** (A2A negotiation history), and **`manager_turns`**
+(provider-emitted reasoning per completed inference turn). The manager may
+discover only one agent on a successful run.
 
-### Brief explanations for each turn
-
-Each tool call asks the manager model for a user-facing explanation of its purpose
-in one sentence (at most 240 characters). For example: "The robot offered to help,
-so I will request confirmation." This is a brief decision summary, not a transcript
-of private internal reasoning, and it describes intent rather than proving the
-action succeeded. The tool result and `attempts` provide the execution evidence.
-
-Watch the **manager server terminal** for live summaries as tool calls start.
-To show summaries in the client after the request finishes:
+### Actual model reasoning for each turn
 
 ```bash
-python -m agents.client "Find an agent to pick up a 1 kg box and move it indoors." --trace
+python -m agents.client "Find an agent to pick up a 1 kg box and move it indoors." --thoughts
 ```
 
-Example output (wording and tool order depend on the model):
+The manager preserves Ollama's `choices[0].message.reasoning` text verbatim.
+It also accepts string fields `reasoning_content` and `thinking` when a compatible
+server returns them. These fields are copied to
+`manager_turns[].inference_thoughts`, with their original field names and whitespace.
+There is no separate explanation prompt, summarization call, or truncation.
+This is reasoning text emitted by the local model, not a view of every internal
+computation. If Ollama returns no reasoning text, the display says so and does
+not manufacture an explanation or treat ordinary answer text as reasoning.
 
-```text
-Turn 1 [discover_agent]: I will inspect this agent's card for the required skills.
-Turn 2 [set_requirements]: The task requires picking and mobility.
-Turn 3 [propose_task]: The card matches, so I will ask the robot whether it can help.
-Turn 4 [confirm_offer]: The robot offered to help, so I will request confirmation.
-Turn 5 [finish_search]: The robot confirmed the offer, so I can report a match.
-```
+The manager server logs the text when each inference response completes. The
+client displays it after the search completes; token streaming and A2A streaming
+remain disabled. `--trace` displays tool actions, and can be combined with
+`--thoughts`. `--json` includes both histories and remains pure JSON with either
+flag. Completed turns are retained on search errors and turn/deadline limits.
+Restart the manager after updating the code.
 
-If the model omits its summary, the trace records a system-labeled fallback rather
-than inventing an explanation. Turns with no tool call also get a system-labeled
-entry. `--json` includes these fields and remains valid JSON even with `--trace`.
-The client receives the trace after completion; A2A streaming remains disabled.
+See [Ollama thinking documentation](https://docs.ollama.com/capabilities/thinking)
+for models that expose reasoning (the native `/api/chat` field is `message.thinking`).
+This project continues to use the OpenAI-compatible `/v1/chat/completions` endpoint.
 
 The defaults are **16 model turns** and **600 seconds per search**. Reaching
 either limit returns `status: "error"` with the collected evidence, rather than

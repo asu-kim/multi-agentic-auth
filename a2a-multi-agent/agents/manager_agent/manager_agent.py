@@ -38,11 +38,6 @@ For an ambiguous request use ask_user with a specific question. Finish through
 finish_search, not an ordinary text response. This system negotiates suitability;
 it does not execute physical work. Prefer one tool call per turn and observe its
 result before deciding what to do next. Keep calls efficient within the budget.
-Include decision_summary in each tool call: one brief user-facing sentence
-explaining the action's purpose using the user's task or evidence already observed.
-For example: "The robot offered to help, so I will request confirmation."
-Do not include private internal deliberation, step-by-step reasoning, or outcomes
-that have not happened. Keep the summary under 240 characters.
 """
 
 
@@ -63,17 +58,30 @@ class ManagerAgent:
             {"role": "user", "content": json.dumps({"request": request.model_dump(),
                 "agent_urls": list(actions.urls), "max_turns": self.max_turns})},
         ]
+        turns = []
+
+        def with_turns(result):
+            return result.model_copy(update={"manager_actions": list(actions.actions),
+                                             "manager_turns": list(turns)})
+
         try:
             async with asyncio.timeout(self.timeout):
                 for turn in range(1, self.max_turns + 1):
                     message = await self.llm.chat(messages, TOOLS)
+                    # Observation only: remove provider reasoning before replaying the message.
+                    thoughts = {field: message.pop(field) for field in
+                                ("reasoning", "reasoning_content", "thinking")
+                                if isinstance(message.get(field), str)}
+                    turns.append({"turn": turn, "inference_thoughts": thoughts})
+                    if any(thoughts.values()):
+                        for field, text in thoughts.items():
+                            logger.info("Manager turn %d [Ollama %s]:\n%s", turn, field, text)
+                    else:
+                        logger.info("Manager turn %d: No reasoning text returned by Ollama.", turn)
                     messages.append(message)
                     calls = message.get("tool_calls", [])
                     if not calls:
-                        summary = "No tool action was returned; requesting a tool selection."
-                        logger.info("Manager turn %d [no_tool]: %s", turn, summary)
                         actions.actions.append({"turn": turn, "tool": "no_tool",
-                            "decision_summary": summary, "summary_source": "system",
                             "arguments": {}, "result": {"error": "No tool action was returned."}})
                         messages.append({"role": "user", "content":
                             "Choose a tool. Use finish_search for an evidence-backed result, or ask_user for clarification."})
@@ -83,17 +91,11 @@ class ManagerAgent:
                         name = call["function"]["name"]
                         raw = call["function"]["arguments"]
                         arguments = {}
-                        summary = "No brief decision summary was provided for this action."
-                        summary_source = "system"
                         try:
                             arguments = json.loads(raw)
                             if not isinstance(arguments, dict):
                                 raise ValueError("Tool arguments must be a JSON object.")
-                            supplied_summary = arguments.get("decision_summary")
-                            if isinstance(supplied_summary, str) and supplied_summary.strip():
-                                summary = " ".join(supplied_summary.split())[:600]
-                                summary_source = "model"
-                            logger.info("Manager turn %d [%s] (%s): %s", turn, name, summary_source, summary)
+                            logger.info("Manager turn %d [%s]", turn, name)
                             if actions.finished is not None:
                                 result = {"error": "The search already finished; this additional action was not executed."}
                             else:
@@ -102,16 +104,15 @@ class ManagerAgent:
                             result = {"error": str(exc)}
                             logger.info("Manager turn %d [%s] rejected: %s", turn, name, exc)
                         actions.actions.append({"turn": turn, "tool": name,
-                            "decision_summary": summary, "summary_source": summary_source,
                             "arguments": arguments if isinstance(arguments, dict) else {"invalid": raw},
                             "result": result})
                         messages.append({"role": "tool", "tool_call_id": call["id"],
                                          "content": json.dumps(result)})
                     if actions.finished is not None:
-                        return actions.finished.model_copy(update={"manager_actions": list(actions.actions)})
-                return actions.result("error", f"Manager reached its {self.max_turns}-turn limit before finishing the search.")
+                        return with_turns(actions.finished)
+                return with_turns(actions.result("error", f"Manager reached its {self.max_turns}-turn limit before finishing the search."))
         except TimeoutError:
-            return actions.result("error", f"Manager exceeded its {self.timeout:g}-second search deadline.")
+            return with_turns(actions.result("error", f"Manager exceeded its {self.timeout:g}-second search deadline."))
         except Exception as exc:
             logger.exception("Autonomous manager failed")
-            return actions.result("error", f"Manager could not continue: {exc}")
+            return with_turns(actions.result("error", f"Manager could not continue: {exc}"))

@@ -145,30 +145,32 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.status, 'found')
         self.assertEqual(result.manager_actions[0]['tool'], 'set_requirements')
 
-    async def test_brief_decision_summary_is_logged_and_returned(self):
-        summary = 'I will inspect the robot card to check its advertised abilities.'
-        self.manager_llm.script[0] = tool('discover_agent', agent_url=ROBOT, decision_summary=summary)
+    async def test_provider_thoughts_are_logged_and_returned_verbatim(self):
+        # Deliberately long, multiline fixture, not an actual inference sample.
+        text = '  test fixture\n' + 'raw text  ' * 300 + '\n'
+        self.manager_llm.script[0]['reasoning'] = text
         with self.assertLogs('agents.manager_agent.manager_agent', level='INFO') as logs:
             result = await self.ask('Pick up a box and move it indoors')
         self.assertEqual(result.status, 'found')
-        self.assertEqual(result.manager_actions[0]['decision_summary'], summary)
-        self.assertEqual(result.manager_actions[0]['summary_source'], 'model')
-        self.assertEqual(result.manager_actions[1]['summary_source'], 'system')
-        self.assertTrue(any(summary in line for line in logs.output))
+        self.assertEqual(result.manager_turns[0]['inference_thoughts'], {'reasoning': text})
+        self.assertEqual(result.manager_turns[1]['inference_thoughts'], {})
+        self.assertTrue(any(text in line for line in logs.output))
+        self.assertNotIn('decision_summary', result.manager_actions[0])
         output = io.StringIO()
         with redirect_stdout(output):
-            print_result(result, trace=True)
-        self.assertIn('Turn 1 [discover_agent]: ' + summary, output.getvalue())
-        self.assertIn('(system)', output.getvalue())
+            print_result(result, trace=True, thoughts=True)
+        self.assertIn(text, output.getvalue())
+        self.assertIn('Turn 2: No reasoning text returned by Ollama.', output.getvalue())
+        self.assertEqual(len(self.manager_llm.calls), 5)
 
     async def test_trace_flag_keeps_json_output_valid(self):
         result = await self.ask('Pick up a box and move it indoors')
         output = io.StringIO()
         with redirect_stdout(output):
-            print_result(result, as_json=True, trace=True)
+            print_result(result, as_json=True, trace=True, thoughts=True)
         parsed = json.loads(output.getvalue())
         self.assertEqual(parsed['status'], 'found')
-        self.assertIn('decision_summary', parsed['manager_actions'][0])
+        self.assertEqual(len(parsed['manager_turns']), 5)
 
     async def test_full_a2a_search_with_native_ollama_tool_protocol(self):
         director = ScriptedManagerLLM(match_script())
@@ -178,6 +180,8 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
             payload = json.loads(request.content)
             requests.append(payload)
             answer = await director.chat(payload['messages'], payload['tools'])
+            answer['reasoning'] = '  upstream fixture\n' + str(len(requests))
+            self.assertTrue(all('reasoning' not in m for m in payload['messages']))
             return httpx.Response(200, json={'choices': [{'message': answer}]})
 
         async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as http:
@@ -185,6 +189,8 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
             result = await self.ask('Pick up a 1 kg box and carry it indoors')
         self.assertEqual(result.status, 'found')
         self.assertEqual(len(requests), 5)
+        self.assertEqual([r['inference_thoughts']['reasoning'] for r in result.manager_turns],
+                         ['  upstream fixture\n' + str(i) for i in range(1, 6)])
         self.assertEqual([a.status for a in result.attempts], ['offered', 'confirmed'])
         self.assertEqual(json.loads(requests[4]['messages'][-1]['content'])['status'], 'confirmed')
 
@@ -330,7 +336,8 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('3-turn limit', result.summary)
         self.assertEqual(len(self.manager_llm.calls), 3)
         self.assertEqual(len(result.manager_actions), 3)
-        self.assertTrue(all(a['summary_source'] == 'system' for a in result.manager_actions))
+        self.assertEqual(len(result.manager_turns), 3)
+        self.assertTrue(all(not t['inference_thoughts'] for t in result.manager_turns))
         self.assertNotIn('Found a flying robot; task done.', json.dumps(result.manager_actions))
 
     async def test_total_deadline_is_enforced(self):
@@ -405,7 +412,7 @@ class ModelClientTests(unittest.IsolatedAsyncioTestCase):
             model = OllamaJSON(http, "http://127.0.0.1:11435/v1", "gpt-oss:20b", "ollama", 30)
             messages = [{"role": "user", "content": "Find a robot"}]
             answer = await model.chat(messages, TOOLS)
-            self.assertNotIn("reasoning", answer)
+            self.assertEqual(answer.pop("reasoning"), "private reasoning")
             self.assertEqual(json.loads(answer["tool_calls"][0]["function"]["arguments"]), {"agent_url": ROBOT})
             messages.extend([answer, {"role": "tool", "tool_call_id": "native-call-1", "content": "{}"}])
             await model.chat(messages, TOOLS)
@@ -413,6 +420,19 @@ class ModelClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(requests[0]["tools"], TOOLS)
         self.assertFalse(requests[0]["parallel_tool_calls"])
         self.assertNotIn("response_format", requests[0])
+
+    async def test_reasoning_fields_preserve_text_without_using_answer_content(self):
+        for fields in ({}, {'reasoning': ''}, {'thinking': '  x\ny  '},
+                       {'reasoning_content': 'fixture'}, {'reasoning': None}):
+            with self.subTest(fields=fields):
+                async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request:
+                    httpx.Response(200, json={'choices': [{'message': {
+                        'content': 'ordinary answer', **fields}}]}))) as http:
+                    model = OllamaJSON(http, 'http://localhost:11435/v1', 'gpt-oss:20b', 'ollama', 30)
+                    answer = await model.chat([], [])
+                expected = {k: v for k, v in fields.items() if isinstance(v, str)}
+                actual = {k: v for k, v in answer.items() if k not in ('role', 'content')}
+                self.assertEqual(actual, expected)
 
     async def test_malformed_tool_call_is_reported(self):
         async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request:

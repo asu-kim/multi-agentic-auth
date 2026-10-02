@@ -11,18 +11,26 @@ from agents.common.negotiation_models import SearchRequest, SearchResult
 from agents.common.a2a_client import A2APeer
 
 
-def print_result(result: SearchResult, *, as_json: bool = False, trace: bool = False):
+def print_result(result: SearchResult, *, as_json: bool = False, trace: bool = False, thoughts: bool = False):
     if as_json:
         print(json.dumps(result.model_dump(), indent=2))
         return
     print(result.summary)
     if trace:
         for action in result.manager_actions:
-            source = " (system)" if action.get("summary_source") != "model" else ""
-            print(f"  Turn {action['turn']} [{action['tool']}]{source}: "
-                  f"{action.get('decision_summary', 'No brief decision summary was provided.')}")
+            print(f"  Turn {action['turn']} [{action['tool']}]: "
+                  f"{json.dumps(action['arguments'])}")
             if action.get("result", {}).get("error"):
                 print(f"    Error: {action['result']['error']}")
+    if thoughts:
+        for turn in result.manager_turns:
+            fields = turn["inference_thoughts"]
+            if not any(fields.values()):
+                print(f"Turn {turn['turn']}: No reasoning text returned by Ollama.")
+            else:
+                for field, text in fields.items():
+                    print(f"Turn {turn['turn']} [Ollama {field}]:")
+                    print(text, end="" if text.endswith("\n") else "\n")
     for attempt in result.attempts:
         print(f"  {attempt.agent_name} / {attempt.phase}: {attempt.status} — {attempt.detail}")
 
@@ -34,7 +42,7 @@ async def run(args):
         card = await peer.discover(args.url or settings.urls["manager"])
         request = SearchRequest(query=args.query, required_capabilities=args.capability)
         result = SearchResult.model_validate(await peer.send(card, request.model_dump(), uuid4().hex))
-        print_result(result, as_json=args.json, trace=args.trace)
+        print_result(result, as_json=args.json, trace=args.trace, thoughts=args.thoughts)
         return 0 if result.status == "found" else 1
 
 
@@ -45,7 +53,8 @@ def main():
                         help="Exact required skill ID; repeat for multiple requirements. The manager still chooses its actions.")
     parser.add_argument("--url", help="Manager's A2A base URL")
     parser.add_argument("--json", action="store_true", help="Print full result and negotiation history")
-    parser.add_argument("--trace", action="store_true", help="Print brief manager decision summaries after the result")
+    parser.add_argument("--trace", action="store_true", help="Print manager tool actions after the result")
+    parser.add_argument("--thoughts", action="store_true", help="Print unmodified reasoning text returned by Ollama for each manager turn")
     args = parser.parse_args()
     try:
         sys.exit(asyncio.run(run(args)))

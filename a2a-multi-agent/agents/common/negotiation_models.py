@@ -62,3 +62,6 @@ class SearchResult(StrictModel):
     attempts: list[Attempt] = Field(default_factory=list)
     # Executed tool actions and observations, not the model's private reasoning.
     manager_actions: list[dict] = Field(default_factory=list)
+
+    # One record per completed model response; text is copied from provider fields.
+    manager_turns: list[dict] = Field(default_factory=list)
