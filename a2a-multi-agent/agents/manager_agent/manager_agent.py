@@ -91,7 +91,7 @@ class ManagerAgent:
                                 raise ValueError("Tool arguments must be a JSON object.")
                             supplied_summary = arguments.get("decision_summary")
                             if isinstance(supplied_summary, str) and supplied_summary.strip():
-                                summary = " ".join(supplied_summary.split())[:240]
+                                summary = " ".join(supplied_summary.split())[:600]
                                 summary_source = "model"
                             logger.info("Manager turn %d [%s] (%s): %s", turn, name, summary_source, summary)
                             if actions.finished is not None:
