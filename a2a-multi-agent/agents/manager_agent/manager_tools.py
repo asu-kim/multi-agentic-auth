@@ -1,6 +1,8 @@
 """Manager decisions backed by discovered cards; no worker messages or offers."""
 from typing import Literal
 
+from agents.manager_agent.iotauth_delegate import IoTAuthDelegate
+
 from a2a.types import AgentCard
 from pydantic import Field
 
@@ -38,6 +40,7 @@ TOOL_SPECS = {
     "discover_agent": (AgentAddress, "Fetch an A2A card to learn skills and limits. A refresh invalidates this agent's assessment. Can retry errors."),
     "set_requirements": (Requirements, "Set ALL required capabilities; preserve unsupported abilities. Explicit user IDs cannot change. Changes clear assessments."),
     "assess_agent": (CardAssessment, "Record YOUR suitability judgment based on the discovered card and original task, including all limits. No request is sent to the agent."),
+    "delegate_authority": (AgentAddress, "After a positive assessment, grant the identified agent's configured IoTAuth group authority over Resources for 1*day through Auth. Call before finish_search. A failed or uncertain request must not be retried automatically."),
     "finish_search": (Finish, "Select a positively assessed card matching all required skills, or report not_found after inspecting the roster and rejecting every skill-matching candidate."),
     "ask_user": (Clarification, "Ask a specific question if requirements or feasibility details are missing."),
 }
@@ -63,6 +66,7 @@ class ManagerTools:
         self.attempts: list[Attempt] = []
         self.actions: list[dict] = []
         self.finished: SearchResult | None = None
+        self.delegations: dict[str, dict] = {}
 
     def address(self, value: str) -> str:
         url = value.rstrip("/")
@@ -126,6 +130,16 @@ class ManagerTools:
             phase="assessment", status="suitable" if args.suitable else "unsuitable", detail=args.reason))
         return assessment.model_dump()
 
+    async def delegate_authority(self, args: AgentAddress) -> dict:
+        url = self.address(args.agent_url)
+        assessment = self.assessments.get(url)
+        if (url not in self.cards or assessment is None or not assessment.suitable
+                or not self.required or self.missing_skills(self.cards[url])):
+            raise ValueError("Discover and positively assess the agent before delegating authority.")
+        if url not in self.delegations:
+            self.delegations[url] = await IoTAuthDelegate().delegate(url)
+        return self.delegations[url]
+
     async def finish_search(self, args: Finish) -> dict:
         if not self.required:
             raise ValueError("Set required capabilities or ask the user for clarification before finishing.")
@@ -134,6 +148,10 @@ class ManagerTools:
             assessment = self.assessments.get(url)
             if url not in self.cards or assessment is None or not assessment.suitable:
                 raise ValueError("Cannot report found without a positive card-based assessment.")
+            delegation = self.delegations.get(url)
+            if delegation is not None and delegation.get("status") != "delegated":
+                self.finished = self.result("error", "Agent identified, but Auth delegation was not confirmed; see manager_actions. Do not retry automatically: the grant may have been applied.")
+                return {"status": self.finished.status, "summary": self.finished.summary}
             card = self.cards[url]
             if self.missing_skills(card):
                 raise ValueError("Selected card does not cover all required capabilities.")
@@ -141,7 +159,9 @@ class ManagerTools:
                 capabilities=[s.id for s in card.skills], reason=assessment.reason)
             self.finished = self.result("found",
                 f"Selected {selected.name} based on its advertised card: {assessment.reason} "
-                "Availability and execution have not been checked.", selected)
+                "Availability and execution have not been checked."
+                + (f" Auth confirmed delegation of {delegation['subject']} authority over Resources for 1*day."
+                   if delegation else ""), selected)
         else:
             if args.agent_url is not None:
                 raise ValueError("Use null for agent_url when reporting not_found.")

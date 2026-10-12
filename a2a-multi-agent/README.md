@@ -26,6 +26,7 @@ User -> A2A -> Manager LLM
                  +-> discover_agent: fetch an A2A card
                  +-> set_requirements: interpret all required skills
                  +-> assess_agent: record the manager's own card-based judgment
+                 +-> delegate_authority: grant the selected agent's group authority through IoTAuth
                  +-> finish_search: select an agent or report no suitable card
                  +-> ask_user: request missing details
 ```
@@ -168,8 +169,8 @@ Tests use real A2A SDK discovery and manager JSON-RPC messaging through ASGI
 transports, with deterministic model doubles. They cover card-only worker traffic,
 selection guards, constraint rejection, retries, independent concurrent searches,
 changed requirements/cards, deadlines and model failures. They do not validate a
-live model's judgment. Local clients ignore proxy environment variables. The demo
-has no authentication or IoTAuth integration and is intended for local development.
+live model's judgment. Local clients ignore proxy environment variables. The A2A endpoints have no authentication and are intended for local development.
+Agent authority delegation uses the configured IoTAuth manager identity.
 
 
 ## Explicit worker tasks
@@ -204,3 +205,47 @@ as structured errors. The default worker model can be changed with
 `SUBAGENT_MODEL` in `.env`; restart workers after changing it. Constructing an
 agent without a model is supported for card-only tests, but task requests then
 return an explicit configuration error.
+
+## Manager authority delegation
+
+After identifying and positively assessing an agent with the desired capabilities,
+the manager calls `delegate_authority` with that agent's `agent_url`, before
+`finish_search`. The tool resolves the selected URL through `IOTAUTH_AGENT_GROUPS`
+and sends `delegateAuthority <configured-group> Resources 1*day`. It does not
+infer authorization identities from display names or untrusted card text.
+
+Set `IOTAUTH_AGENT_GROUPS` to a JSON object mapping each selectable A2A URL to its
+actual registered IoTAuth group. The groups defined in `iotauth/examples/configs/remote_server.graph` are:
+
+```dotenv
+IOTAUTH_AGENT_GROUPS='{"http://127.0.0.1:10000/":"ManagerAgents","http://127.0.0.1:10001/":"LanguageAgents","http://127.0.0.1:10002/":"AnalyticsAgents","http://127.0.0.1:10003/":"RobotAgents"}'
+```
+
+The mapping includes Manager, Language, Analytics, and Robot. Manager remains
+outside the default selectable worker roster. Keep these URLs aligned with the
+deployment and ensure Auth grants the manager delegation privileges for each subject. There is no hard-coded fallback subject;
+a missing mapping reports an error without sending a command. URL matching ignores
+a trailing slash. This grants authority to the selected agent's configured **group**,
+which may contain more than one entity.
+
+Provision the manager's IoTAuth config, keys, and Auth registration first. This
+checkout does not include `configs/net1/managerAgent.config`; the integration
+reports a configuration error until it is supplied. Set `IOTAUTH_MANAGER_CONFIG`
+if its path differs (the directory is `configs`, not `config`). Install the Node
+entity dependencies and run the corresponding IoTAuth Auth service as usual.
+
+The tool launches `node user.js configs/net1/managerAgent.config --privilege-json`
+from the sibling `iotauth/entity/node/example_entities` directory. It waits for
+initialization to finish before writing the command to stdin. The optional flag
+adds JSON events while preserving normal interactive logs. Success requires both
+`received privilege response!` and `Finished privilege request`, plus a structured
+`DelegationGrant` policy with `IsDelegated: 1`. The returned policy is preserved in
+`manager_actions`; it may contain a concrete target such as `ResourceA` rather
+than the requested collection `Resources`.
+
+`IOTAUTH_ENTITY_DIR`, `IOTAUTH_MANAGER_CONFIG`, `IOTAUTH_NODE`, and
+`IOTAUTH_TIMEOUT_SECONDS` configure the bridge. A timeout or failed response is
+reported as an error; a sent request may already have changed Auth state, so it
+is not retried automatically. Repeated tool calls within the same search reuse
+the first result. The subprocess is cleaned up on success, failure, or cancellation.
+This does not send a task to the Robot or verify its physical availability.

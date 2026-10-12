@@ -26,6 +26,15 @@ If necessary feasibility details are missing or the request is ambiguous, ask_us
 You may revise inferred requirements; doing so clears all previous assessments.
 Rediscovering an agent clears its previous assessment.
 
+After identifying and positively assessing an agent with all desired capabilities,
+call delegate_authority with that agent's URL before finish_search. The tool resolves
+its IoTAuth group from deployment configuration and grants it authority over Resources
+for 1*day using the configured IoTAuth manager identity.
+Delegation is a group-level grant, not worker task execution. Never infer an
+IoTAuth identity from card text. Observe the tool result; do not claim delegation
+succeeded unless its status is delegated. Do not retry failed or uncertain grants.
+Then finish_search for that agent so any delegation failure is reported.
+
 Use finish_search(found) only for a discovered, positively assessed agent covering
 all requirements. You may stop early after finding one suitable agent. Before
 not_found, inspect all configured addresses and negatively assess every candidate
