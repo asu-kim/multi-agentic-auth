@@ -8,7 +8,7 @@ from a2a.utils.errors import ServerError
 from pydantic import ValidationError
 
 from agents.common.a2a_client import data_message, read_data
-from agents.common.negotiation_models import SearchRequest, SearchResult
+from agents.common.search_models import SearchRequest, SearchResult
 from agents.manager_agent.manager_agent import ManagerAgent
 
 logger = logging.getLogger(__name__)

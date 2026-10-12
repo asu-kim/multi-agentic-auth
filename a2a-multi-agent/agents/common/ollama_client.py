@@ -13,7 +13,7 @@ class ModelError(RuntimeError):
 
 
 class OllamaJSON:
-    """Ollama client: structured sub-agent assessments and native manager tool calls."""
+    """Ollama client: structured worker task responses and native manager tool calls."""
 
     def __init__(self, http: httpx.AsyncClient, base_url: str, model: str, api_key: str, timeout: float):
         self.http, self.base_url, self.model = http, base_url.rstrip("/"), model

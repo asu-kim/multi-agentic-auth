@@ -1,13 +1,10 @@
 from pathlib import Path
-
 from agents.common.agent_card_loader import load_agent_card
-from agents.common.negotiating_agent import NegotiatingAgent
+from agents.common.task_agent import TaskAgent
 
 
-class AnalyticsAgent(NegotiatingAgent):
-    """Independent analytics agent; its adjacent JSON card defines its abilities and limits."""
-
-    def __init__(self, llm, *, url: str | None = None, available: bool = True,
-                 offer_ttl: float = 600):
+class AnalyticsAgent(TaskAgent):
+    """Publish a card and handle explicit LLM task requests."""
+    def __init__(self, llm=None, *, url: str | None = None):
         card = load_agent_card(Path(__file__).with_name("analytics_agent_card.json"), url)
-        super().__init__(card, llm, available=available, offer_ttl=offer_ttl)
+        super().__init__(card, llm, instructions='Analyze only the supplied numerical data. Return the requested statistics or anomaly analysis with your method.', simulation=False)

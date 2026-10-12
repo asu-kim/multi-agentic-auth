@@ -1,7 +1,7 @@
 [project]
 name = "a2a-capability-team"
 version = "0.1.0"
-description = "Autonomous tool-calling manager and three Ollama agents negotiating capabilities over A2A"
+description = "Autonomous manager selecting agents from A2A cards"
 requires-python = ">=3.12"
 dependencies = [
   "a2a-sdk[http-server]==0.3.0",

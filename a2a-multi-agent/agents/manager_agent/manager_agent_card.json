@@ -11,18 +11,18 @@
     "text/plain",
     "application/json"
   ],
-  "description": "Discover agents from their cards and negotiate a capability match.",
+  "description": "Discover and select an agent by assessing its A2A card, skills and declared limits.",
   "name": "Manager Agent",
   "preferredTransport": "JSONRPC",
   "protocolVersion": "0.3.0",
   "skills": [
     {
-      "description": "Find a single agent satisfying all requested capabilities and confirm its suitability.",
+      "description": "Select one agent whose card matches all requested capabilities and constraints. Selection does not confirm availability or execute work.",
       "examples": [
         "Find a robot that can pick up a box and move it to station B."
       ],
       "id": "agent_discovery",
-      "name": "Agent discovery and negotiation",
+      "name": "Agent discovery and selection",
       "tags": [
         "agent_discovery"
       ]

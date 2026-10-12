@@ -48,6 +48,8 @@ def run_server(role: str, create_app, argv=None):
     port = urlsplit(settings.urls[role]).port
     if port is None:
         parser.error(f"{role.upper()}_URL must include a port")
-    model = settings.manager_model if role == "manager" else settings.subagent_model
-    logger.info("%s uses model %s at %s", role, model, settings.llm_url)
+    if role == "manager":
+        logger.info("%s uses model %s at %s", role, settings.manager_model, settings.llm_url)
+    else:
+        logger.info("%s uses model %s at %s", role, settings.subagent_model, settings.llm_url)
     uvicorn.run(create_app(settings), host=args.host, port=port)

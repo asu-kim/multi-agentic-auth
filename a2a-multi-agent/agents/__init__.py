@@ -1,1 +1,1 @@
-"""Capability discovery and negotiation over A2A."""
+"""Card-based capability discovery and selection over A2A."""

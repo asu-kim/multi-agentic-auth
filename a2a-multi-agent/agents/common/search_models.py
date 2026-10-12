@@ -13,41 +13,17 @@ class SearchRequest(StrictModel):
     required_capabilities: list[str] = Field(default_factory=list)
 
 
-class Assessment(StrictModel):
-    can_help: bool
-    reason: str
-
-
-class NegotiationRequest(StrictModel):
-    protocol: Literal["capability-negotiation/v1"] = "capability-negotiation/v1"
-    action: Literal["propose", "confirm"]
-    request_id: str
-    query: str = Field(min_length=1, max_length=8000)
-    required_capabilities: list[str] = Field(min_length=1)
-    offer_id: str | None = None
-
-
-class NegotiationReply(StrictModel):
-    protocol: Literal["capability-negotiation/v1"] = "capability-negotiation/v1"
-    request_id: str
-    status: Literal["offered", "confirmed", "declined", "error"]
-    agent_name: str
-    capabilities: list[str]
-    reason: str
-    offer_id: str | None = None
-
-
 class SelectedAgent(StrictModel):
     name: str
     url: str
     capabilities: list[str]
-    offer_id: str
+    reason: str
 
 
 class Attempt(StrictModel):
     agent_name: str
     agent_url: str
-    phase: Literal["discovery", "proposal", "confirmation"]
+    phase: Literal["discovery", "assessment"]
     status: str
     detail: str
 
@@ -60,6 +36,7 @@ class SearchResult(StrictModel):
     summary: str
     discovered_agents: list[dict] = Field(default_factory=list)
     attempts: list[Attempt] = Field(default_factory=list)
+    assessments: list[dict] = Field(default_factory=list)
     # Executed tool actions and observations, not the model's private reasoning.
     manager_actions: list[dict] = Field(default_factory=list)
 

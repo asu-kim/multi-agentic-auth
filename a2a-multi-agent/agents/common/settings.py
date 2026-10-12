@@ -10,12 +10,11 @@ class Settings:
     llm_url: str
     api_key: str
     manager_model: str
-    subagent_model: str
     urls: dict[str, str]
     agent_urls: tuple[str, ...]
     llm_timeout: float
     a2a_timeout: float
-    robot_available: bool
+    subagent_model: str = "llama3.2:3b"
     manager_max_turns: int = 16
     manager_timeout: float = 600
 
@@ -47,6 +46,5 @@ class Settings:
             urls=urls, agent_urls=agent_urls,
             llm_timeout=float(os.getenv("LLM_TIMEOUT_SECONDS", "180")),
             a2a_timeout=float(os.getenv("A2A_TIMEOUT_SECONDS", "900")),
-            robot_available=os.getenv("ROBOT_AVAILABLE", "true").lower() in {"1", "true", "yes"},
             manager_max_turns=manager_max_turns, manager_timeout=manager_timeout,
         )

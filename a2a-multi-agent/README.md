@@ -1,6 +1,9 @@
-# A2A capability discovery team
+# A2A card-based agent selection
 
-One autonomous LLM manager discovers three independent agents from their **A2A Agent Cards**, negotiates suitability, and reports `found` or `not_found` with the negotiation history. All agent-to-agent requests use A2A 0.3 JSON-RPC through the official Python SDK's `ClientFactory` (not deprecated `A2AClient`). Model inference uses your local Ollama OpenAI-compatible API.
+An autonomous LLM manager reads independent agents' **A2A Agent Cards**, compares
+skills and declared limits with the user's request, and selects **one** suitable
+agent. There is no proposal/confirmation negotiation, task reservation, or automatic task execution during selection. A `found` result means the card appears suitable;
+it does not confirm current availability or actual ability to execute the task.
 
 | Agent | Model | Port | Advertised skill IDs |
 | --- | --- | --- | --- |
@@ -9,303 +12,195 @@ One autonomous LLM manager discovers three independent agents from their **A2A A
 | Analytics | `llama3.2:3b` | 10002 | `statistics`, `anomaly_detection` |
 | Robot | `llama3.2:3b` | 10003 | `picking`, `mobility` |
 
-Language and Analytics are the two arbitrarily chosen sample agents. Their abilities are stable across restarts so the examples are reproducible. All three sub-agents share the same Ollama model, but have separate server processes, cards, prompts, and offer stores.
+Each agent is a separate server process with its own stored JSON card. The manager
+knows configured addresses only; it learns abilities by fetching cards over HTTP
+using the A2A SDK's card resolver. User requests to the manager still use A2A 0.3
+JSON-RPC `message/send` through `ClientFactory`. The manager never sends task
+messages to the workers. All four agents have their own Ollama client. Worker inference runs only for explicit task requests; card discovery never calls a worker model.
 
-The robot is a **negotiation simulation**. It advertises picking up to 2 kg and movement on flat indoor floors; no physical robot commands are sent. The other sample agents also negotiate capability rather than execute translation or analysis jobs. This project finds one suitable agent; it does not split a request across a team.
+## Decision loop
 
-## Agent folder structure
+```text
+User -> A2A -> Manager LLM
+                 |
+                 +-> discover_agent: fetch an A2A card
+                 +-> set_requirements: interpret all required skills
+                 +-> assess_agent: record the manager's own card-based judgment
+                 +-> finish_search: select an agent or report no suitable card
+                 +-> ask_user: request missing details
+```
 
-Each named folder is an independent agent, with its own class, A2A executor,
-startup module, and stored JSON card. The three sub-agents inherit common
-negotiation behavior but have separate instances, offer stores, and servers.
+The LLM chooses actions and discovery order; this is not a fixed workflow. It can
+inspect Robot first and finish early, compare several cards, or retry a failed
+lookup. `assess_agent` only stores the manager's decision and reason; it does not
+contact another agent or model. The manager must consider descriptions and limits,
+not just skill names. For example, Robot advertises a maximum payload of 2 kg and
+flat indoor floors, so the manager should reject a 20 kg pickup request.
+
+The runtime enforces these conditions:
+
+- A positive assessment requires a discovered card covering every required skill.
+- `found` requires a positive assessment of that card.
+- Explicit user skill IDs cannot change. Changing inferred requirements clears
+  previous assessments; refreshing a card clears that card's assessment.
+- `not_found` requires inspecting the entire roster and a negative assessment for
+  every card covering the required skills. If any cards remain unavailable, the
+  result is `error` with an incomplete-search explanation.
+- The default budget is 16 model turns and 600 seconds; exceeding either produces
+  `error` and preserves completed history.
+
+Free-text limits are interpreted by the manager LLM, not independently verified
+by code or hardware. The search selects one agent for the entire request; it does
+not divide work across a team.
+
+## Code layout
 
 ```text
 agents/
 ├── manager_agent/
-│   ├── __main__.py                 # Start the manager A2A server
-│   ├── manager_agent.py            # LLM-directed tool loop
-│   ├── manager_tools.py            # A2A actions and evidence checks
-│   ├── manager_agent_executor.py   # Handle user A2A requests
-│   └── manager_agent_card.json
-├── language_agent/
-│   ├── __main__.py
-│   ├── language_agent.py
-│   ├── language_agent_executor.py
-│   └── language_agent_card.json    # Translation and summarization
-├── analytics_agent/
-│   ├── __main__.py
-│   ├── analytics_agent.py
-│   ├── analytics_agent_executor.py
-│   └── analytics_agent_card.json   # Statistics and anomaly detection
-├── robot_agent/
-│   ├── __main__.py
-│   ├── robot_agent.py
-│   ├── robot_agent_executor.py
-│   └── robot_agent_card.json       # Picking and mobility
+│   ├── manager_agent.py           # Autonomous tool loop and manager instructions
+│   ├── manager_tools.py           # Card discovery, assessments and result checks
+│   ├── manager_agent_executor.py  # User A2A request adapter
+│   ├── manager_agent_card.json
+│   └── __main__.py
+├── language_agent/                # Class, JSON card and server entry point
+├── analytics_agent/               # Class, JSON card and server entry point
+├── robot_agent/                   # Class, JSON card and server entry point
 ├── common/
-│   ├── agent_card_loader.py        # Read a card; no capability definitions
-│   ├── negotiating_agent.py       # Shared sub-agent negotiation behavior
-│   ├── negotiation_executor.py    # Shared A2A negotiation adapter
-│   ├── negotiation_models.py      # Request and response schemas
+│   ├── task_executor.py           # Shared explicit worker task handler
+│   ├── search_models.py           # Search request/result schemas
+│   ├── agent_card_loader.py
 │   ├── a2a_client.py
 │   ├── ollama_client.py
 │   ├── server_runtime.py
 │   └── settings.py
-├── client.py              # Send a request to the manager
+├── client.py
 ├── check_ollama_running.py
-└── run_all.py                      # Start all four processes
+└── run_all.py
 ```
 
-Edit an agent's adjacent `*_agent_card.json` to change its name, skills,
-examples, or limits (in `description`). The same card is used for its own
-negotiation checks and published through A2A. Restart the agent after editing.
-Configured URLs override the default `url` in the JSON; model choices remain
-in `.env`. There is no shared card catalog or card-generation function.
-The manager learns other agents' abilities over A2A, not by reading their files.
+Edit each adjacent `*_agent_card.json` to change its skills or limits, then restart
+that agent. Configured URLs override the JSON URL. The A2A `skills` field contains
+task abilities; `capabilities` describes transport features such as streaming.
+Worker JSON-RPC endpoints accept separate `agent-task/v1` execution requests. No negotiation is performed.
 
-## Run on your Linux machine (no sudo or uv)
+## Run
 
-Copy/extract this folder to `~/multi-agentic-auth/a2a-multi-agent`. Use Python 3.12+ virtual environment:
+Use Python 3.12+ and your existing virtual environment:
 
 ```bash
 cd ~/multi-agentic-auth/a2a-multi-agent
 source ~/venv/bin/activate
-python --version
 python -m pip install -e .
+# Initial setup only; preserve any existing .env edits.
 cp .env.example .env
 ```
 
-Copy `.env.example` only during initial setup; preserve your edits on subsequent runs. The defaults already use your Ollama server at **`127.0.0.1:11435`**:
-
-```dotenv
-TOOL_LLM_URL=http://127.0.0.1:11435/v1
-API_KEY=ollama
-MANAGER_MODEL=gpt-oss:20b
-SUBAGENT_MODEL=llama3.2:3b
-```
-
-Check that both models are present on that same Ollama instance:
+The default Ollama endpoint is `http://127.0.0.1:11435/v1`. Both manager and worker models are required for selection and explicit tasks:
 
 ```bash
 export OLLAMA_HOST=127.0.0.1:11435
 ollama list
-ollama pull llama3.2:3b
 ollama pull gpt-oss:20b
+ollama pull llama3.2:3b
 python -m agents.check_ollama_running
-```
-
-Your existing Ollama server must stay running. You can exit an `ollama run` chat with `/bye`; the interactive chat is not required. `llama3.2:3b` is the actual Ollama 3B Llama tag. Change `SUBAGENT_MODEL` if you have a custom model alias.
-
-Stop the old demo agent if it occupies port 10000, then start the complete team:
-
-```bash
 python -m agents.run_all
 ```
 
-Wait for all four servers to report startup complete. Ctrl+C stops the team. If one server exits, the launcher stops the others. Alternatively, run each in its own terminal with the same virtual environment:
+Keep Ollama running. Wait for all four servers to start. Ctrl+C stops the team;
+if a child exits, the launcher stops the others. Alternatively start each agent
+in a separate terminal with `python -m agents.manager_agent`,
+`python -m agents.language_agent`, `python -m agents.analytics_agent`, and
+`python -m agents.robot_agent`.
+
+In another terminal with the same environment:
 
 ```bash
-python -m agents.language_agent
-python -m agents.analytics_agent
-python -m agents.robot_agent
-python -m agents.manager_agent
+python -m agents.client "Find an agent to pick up a 1 kg box and move it indoors." --json
+python -m agents.client "Translate written English text into Spanish." --capability translation --json
+python -m agents.client "Find anomalies in supplied numerical readings." --capability anomaly_detection --json
+python -m agents.client "Pick up a 20 kg box." --capability picking --json
+python -m agents.client "Find an agent that can fly." --capability flying --json
+python -m agents.client "Translate text and pick up boxes." --capability translation --capability picking --json
 ```
 
+Expected selections: Robot, Language, Analytics; the last three requests should
+produce `not_found`. Natural-language requirements and free-text feasibility
+judgments depend on the model. Explicit `--capability` values fix skill IDs but
+do not replace the manager's assessment of constraints.
 
-Those are four separate commands for four separate terminals, not a sequential shell script. To use other ports, change `MANAGER_URL`, `LANGUAGE_URL`, `ANALYTICS_URL`, and `ROBOT_URL` in `.env`. Server ports are read from those URLs. Restart affected processes after configuration changes. Exported shell variables take precedence over `.env`; unset an old `TOOL_LLM_URL` export if your edits appear to be ignored.
+## Results and diagnostics
 
-## Ask the manager
+Results contain `status` (`found`, `not_found`, `input_required`, or `error`),
+`selected_agent` (name, URL, advertised capabilities and manager's `reason`),
+`assessments`, `discovered_agents`, `attempts`, `manager_actions`, and
+`manager_turns`. There is no `offer_id`. `attempts` records discovery errors and
+manager assessments, not worker replies. If the manager asks a question, send a
+new request containing the original task and the answer; searches are independent.
 
-In a second terminal, activate your virtual environment and enter the project folder.
+`--trace` displays executed tool actions. `--thoughts` displays reasoning text
+returned by Ollama after the search completes. Provider `reasoning`,
+`reasoning_content`, and `thinking` string fields are preserved verbatim without
+an extra inference call. Missing reasoning is reported explicitly; ordinary
+answer text is not substituted. `--json` stays valid JSON with either flag.
+Streaming is disabled. Historical `out.json`, if present, is an old run artifact;
+run the client again to generate output in the current format.
 
-```bash
-python -m agents.client \
-  "Find an agent that can pick up a 1 kg box and move it to station B on a flat indoor floor." --json
-```
+Client exit codes are 0 for `found`, 1 for other structured results, and 2 for
+handled HTTP/configuration failures. Discovery failure is not evidence that an
+agent lacks a skill. A successful selection can still finish early even when a
+different agent was unreachable.
 
-Expected successful result (IDs and reasoning vary):
-
-```json
-{
-  "status": "found",
-  "required_capabilities": ["picking", "mobility"],
-  "selected_agent": {
-    "name": "Robot Agent",
-    "url": "http://127.0.0.1:10003/",
-    "capabilities": ["picking", "mobility"],
-    "offer_id": "..."
-  },
-  "summary": "Found Robot Agent at http://127.0.0.1:10003/. It confirmed: picking, mobility."
-}
-```
-
-The actual response also includes the original query, discovered agents, proposal/confirmation attempts, and executed `manager_actions`. For explicit capability matching without LLM interpretation of the request, add skill IDs:
-
-```bash
-python -m agents.client \
-  "Pick up a 1 kg box and carry it indoors to station B." \
-  --capability picking --capability mobility --json
-
-python -m agents.client \
-  "Find an agent to translate written English text to Spanish." --json
-
-python -m agents.client \
-  "Find an agent to detect anomalies in supplied sensor readings." --json
-
-python -m agents.client \
-  "Find an agent that can fly." --capability flying --json
-
-python -m agents.client \
-  "Pick up a 20 kg box." --capability picking --json
-
-python -m agents.client \
-  "Find one agent that translates text and picks up boxes." \
-  --capability translation --capability picking --json
-```
-
-Expected outcomes: translation → Language; anomaly detection → Analytics; flying → `not_found`; 20 kg pickup → Robot should decline after its LLM assessment; translation plus picking → `not_found`, because no single agent advertises both. Natural-language extraction and feasibility reasoning depend on the models. Explicit `--capability` IDs fix the required skills; the manager still uses its LLM
-to choose tools and agents, and sub-agents use their LLM to assess proposals.
-
-Set `ROBOT_AVAILABLE=false` and restart the robot to demonstrate a matching card followed by a negotiation decline. Stop an agent to demonstrate a partial discovery failure.
-
-Client exit codes: `0` for found; `1` for a structured non-success result; `2` for the handled HTTP/configuration errors. The JSON `status` distinguishes `not_found`, `input_required`, and `error`. An unavailable peer is recorded in `attempts`; a result never claims an exhaustive search beyond the configured roster.
-
-## Autonomous discovery and negotiation
-
-`gpt-oss:20b` chooses a native tool call on each turn. The manager executes it,
-returns the tool result to the model, and asks for the next action. There is no
-LangGraph or predefined sequence of discovery, interpretation, and negotiation.
-All sub-agent communication remains A2A.
-
-| Tool | Action |
-| --- | --- |
-| `discover_agent(agent_url)` | Fetch one agent's A2A card. The model chooses which address to inspect next. |
-| `set_requirements(capabilities)` | Interpret all desired capabilities; preserve unsupported requirements. |
-| `propose_task(agent_url)` | Send the original task to an agent for an independent decision. |
-| `confirm_offer(agent_url)` | Confirm a stored offer over A2A. |
-| `finish_search(status, agent_url)` | Finish with an evidence-checked result. |
-| `ask_user(question)` | Return a clarification question if the task is ambiguous. |
-
-The model can inspect a promising agent first, negotiate before inspecting the
-remaining agents, retry a connection failure, try another candidate after a
-decline, or stop once it has a confirmed match. The choice and order are made by
-the model. One possible run is:
-
-```text
-Manager LLM -> discover_agent(robot URL)
-A2A card   -> picking, mobility, payload and floor limits
-Manager LLM -> set_requirements(["picking", "mobility"])
-Manager LLM -> propose_task(robot URL)
-Robot LLM  -> offered
-Manager LLM -> confirm_offer(robot URL)
-Robot A2A  -> confirmed
-Manager LLM -> finish_search("found", robot URL)
-```
-
-The runtime enforces protocol prerequisites: a proposal needs a discovered card
-covering all requirements, and `found` needs a valid confirmed offer. Explicit
-`--capability` values cannot be changed by the model. Inferred requirements can
-be revised before the first proposal; they lock after negotiation starts. A
-`not_found` result requires inspecting the full configured roster and resolving
-matching candidates. Peer failures are reported as an incomplete search.
-
-Use `--json` to see **`manager_actions`** (tool names, arguments and observed
-results), **`attempts`** (A2A negotiation history), and **`manager_turns`**
-(provider-emitted reasoning per completed inference turn). The manager may
-discover only one agent on a successful run.
-
-### Actual model reasoning for each turn
-
-```bash
-python -m agents.client "Find an agent to pick up a 1 kg box and move it indoors." --thoughts
-```
-
-The manager preserves Ollama's `choices[0].message.reasoning` text verbatim.
-It also accepts string fields `reasoning_content` and `thinking` when a compatible
-server returns them. These fields are copied to
-`manager_turns[].inference_thoughts`, with their original field names and whitespace.
-There is no separate explanation prompt, summarization call, or truncation.
-This is reasoning text emitted by the local model, not a view of every internal
-computation. If Ollama returns no reasoning text, the display says so and does
-not manufacture an explanation or treat ordinary answer text as reasoning.
-
-The manager server logs the text when each inference response completes. The
-client displays it after the search completes; token streaming and A2A streaming
-remain disabled. `--trace` displays tool actions, and can be combined with
-`--thoughts`. `--json` includes both histories and remains pure JSON with either
-flag. Completed turns are retained on search errors and turn/deadline limits.
-Restart the manager after updating the code.
-
-See [Ollama thinking documentation](https://docs.ollama.com/capabilities/thinking)
-for models that expose reasoning (the native `/api/chat` field is `message.thinking`).
-This project continues to use the OpenAI-compatible `/v1/chat/completions` endpoint.
-
-The defaults are **16 model turns** and **600 seconds per search**. Reaching
-either limit returns `status: "error"` with the collected evidence, rather than
-claiming no agent exists. Adjust these in `.env` and restart the manager:
-
-```dotenv
-MANAGER_MAX_TURNS=16
-MANAGER_TIMEOUT_SECONDS=600
-```
-
-Keep `A2A_TIMEOUT_SECONDS` above `MANAGER_TIMEOUT_SECONDS` so the client can receive
-the final result. More autonomy means more manager model calls, so it can be
-slower than the previous fixed workflow. The model must support native tool
-calling; `gpt-oss:20b` remains the configured manager model. The sub-agents still
-use `llama3.2:3b` for structured feasibility assessments. If the manager asks for
-clarification, send a new request containing the original task and your answer;
-search state is independent per request.
-
-The manager is configured with **addresses only**, not a hardcoded capability routing table. `AGENT_URLS` can supply a comma-separated list of extra agent addresses. Each card exposes abilities in **`skills`**. The A2A `capabilities` field describes transport features such as streaming; it is not the field for robot abilities. This demo advertises non-streaming support and uses synchronous `message/send` exchanges.
-
-Negotiation is this application's convention carried inside standard A2A **DataPart** messages, not an additional A2A RPC method. To add an external agent, it must implement the `capability-negotiation/v1` envelope in `common/negotiation_models.py`, in addition to publishing an A2A card. Merely publishing any A2A card is insufficient to negotiate with this demo.
-
-Proposal example:
-
-```json
-{
-  "protocol": "capability-negotiation/v1",
-  "action": "propose",
-  "request_id": "a-unique-request-id",
-  "query": "Pick up a 1 kg box and carry it indoors.",
-  "required_capabilities": ["picking", "mobility"],
-  "offer_id": null
-}
-```
-
-Confirmation repeats the same request ID, query, and capability list, changes `action` to `confirm`, and supplies the returned `offer_id`. Both rounds use the same A2A `contextId` and different `messageId` values. Offers expire after ten minutes and are kept in memory. Confirmations are idempotent within that lifetime. They confirm suitability only, not a reservation or executed task. A server restart discards offers.
-
-The manager validates request IDs, agent names, offered skills, and the confirmed offer ID before returning `found`. An LLM cannot add capabilities outside a worker's declared profile. Free-text feasibility limits are assessed by the worker LLM; physical deployments need independent hardware checks and a separate execution step.
-
-## Inspect cards and diagnose configuration
+Configure `MANAGER_MODEL`, `TOOL_LLM_URL`, `MANAGER_MAX_TURNS`,
+`MANAGER_TIMEOUT_SECONDS`, `LLM_TIMEOUT_SECONDS`, `A2A_TIMEOUT_SECONDS`, and the
+four `*_URL` values in `.env`. Optional comma-separated `AGENT_URLS` overrides the
+worker roster. Keep the A2A timeout above the manager deadline. Exported variables
+override `.env`; restart affected processes after changes. `SUBAGENT_MODEL` sets the shared worker model (default `llama3.2:3b`).
+`ROBOT_AVAILABLE` is no longer used. Availability is not checked during selection.
 
 ```bash
 curl http://127.0.0.1:10003/.well-known/agent-card.json
 curl http://127.0.0.1:11435/v1/models
-```
-
-- Missing model: pull it into the same Ollama server selected by `OLLAMA_HOST`.
-- `404 page not found`: the inference base URL must include `/v1`; startup validates this.
-- Agent cannot be reached: check that all four processes are running and ports are free.
-- Slow first response: Ollama may need to load/switch the 20B and 3B models. `LLM_TIMEOUT_SECONDS` defaults to 180 and `A2A_TIMEOUT_SECONDS` to 900; increase these for slow hardware or many candidates. The model check lists installed models but does not verify memory capacity or inference speed.
-- Model errors are included in the result and server traceback, rather than hidden behind a generic A2A internal error.
-
-Local HTTP clients ignore proxy environment variables. For agents on other hosts, configure their reachable advertised URLs and start the servers with `--host 0.0.0.0`. This demo has no authentication or IoTAuth integration and is intended for local development.
-
-## Tests and source
-
-```bash
 python -m unittest discover -s tests -v
 ```
 
-Tests exercise actual A2A SDK card discovery and JSON-RPC messaging via ASGI HTTP transports, the autonomous manager, offers and confirmations, alternate model-selected action orders, early completion,
-retrying discovery, switching candidates after declines, invalid tool calls,
-unconfirmed success attempts, concurrent requests, deadlines, and inference errors. Model outputs are deterministic test doubles; these tests do not download models or validate real model reasoning.
+Tests use real A2A SDK discovery and manager JSON-RPC messaging through ASGI
+transports, with deterministic model doubles. They cover card-only worker traffic,
+selection guards, constraint rejection, retries, independent concurrent searches,
+changed requirements/cards, deadlines and model failures. They do not validate a
+live model's judgment. Local clients ignore proxy environment variables. The demo
+has no authentication or IoTAuth integration and is intended for local development.
 
-See the folder map above. Start with `manager_agent/manager_agent.py` for the
-manager's decision loop, and with each sub-agent's `*_agent.py` and `*_agent_card.json`
-for its identity and abilities. Its `*_agent_executor.py` adapts A2A messages,
-while its `__main__.py` wires up the model and starts its server.
 
-References: [A2A 0.3 specification](https://a2a-protocol.org/v0.3.0/specification/), [Ollama tool calling](https://docs.ollama.com/capabilities/tool-calling), [Ollama API compatibility](https://docs.ollama.com/api/openai-compatibility), [Llama 3.2 model tags](https://ollama.com/library/llama3.2).
+## Explicit worker tasks
+
+Selection via `agents.client` remains card-only and never automatically dispatches
+work. To ask a worker to perform a task, use the separate client:
+
+```bash
+python -m agents.task_client "Translate to Korean: Hello, how are you?" --agent language --json
+python -m agents.task_client "Calculate the mean of these values: 2, 4, 6." --agent analytics --json
+python -m agents.task_client "Plan moving a 1 kg box to station B on a flat indoor floor." --agent robot --json
+```
+
+You can also pass `--url` with the selected agent's URL instead of `--agent`.
+The A2A `DataPart` request is `{"protocol":"agent-task/v1", "action":"execute",
+"query":"..."}`. Plain-text A2A messages are also accepted. This is a one-shot
+request/response interface; it does not preserve conversation state or negotiate.
+
+Workers share `TaskAgent` and `TaskExecutor`, with their own model clients, cards,
+and role instructions. Language generates translations or summaries; Analytics
+produces LLM-based analysis of supplied data (no code execution or live sensors).
+Robot produces plans only: the runtime reports successful robot responses as
+`simulated`, never `completed`, and sends no hardware commands. Actual robot
+execution requires a future hardware/tool adapter.
+
+Results contain `agent_name`, `status`, and `output`. Status is `completed`,
+`simulated`, `input_required`, `declined`, or `error`. The task client exits with
+0 for completed/simulated results, 1 for other structured results, and 2 for
+handled HTTP/configuration failures. Missing inputs and unsupported tasks are
+handled by the worker LLM using its declared card limits. Model errors are returned
+as structured errors. The default worker model can be changed with
+`SUBAGENT_MODEL` in `.env`; restart workers after changing it. Constructing an
+agent without a model is supported for card-only tests, but task requests then
+return an explicit configuration error.

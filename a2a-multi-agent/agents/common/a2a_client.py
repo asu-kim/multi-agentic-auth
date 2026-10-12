@@ -45,4 +45,4 @@ class A2APeer:
                     result = read_data(task.status.message)
                     if result is not None:
                         return result
-        raise ValueError(f"{card.name} returned no structured negotiation result")
+        raise ValueError(f"{card.name} returned no structured result")

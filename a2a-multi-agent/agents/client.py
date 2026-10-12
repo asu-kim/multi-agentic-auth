@@ -7,7 +7,7 @@ from uuid import uuid4
 import httpx
 
 from agents.common.settings import Settings
-from agents.common.negotiation_models import SearchRequest, SearchResult
+from agents.common.search_models import SearchRequest, SearchResult
 from agents.common.a2a_client import A2APeer
 
 
@@ -63,7 +63,7 @@ def main():
     parser.add_argument("--capability", action="append", default=[],
                         help="Exact required skill ID; repeat for multiple requirements. The manager still chooses its actions.")
     parser.add_argument("--url", help="Manager's A2A base URL")
-    parser.add_argument("--json", action="store_true", help="Print result, negotiation history and provider reasoning; omit card transport metadata")
+    parser.add_argument("--json", action="store_true", help="Print result, card assessments and provider reasoning; omit card transport metadata")
     parser.add_argument("--trace", action="store_true", help="Print manager tool actions after the result")
     parser.add_argument("--thoughts", action="store_true", help="Print unmodified reasoning text returned by Ollama for each manager turn")
     args = parser.parse_args()

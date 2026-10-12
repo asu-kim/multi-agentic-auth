@@ -2,7 +2,6 @@ import asyncio
 import copy
 import io
 import json
-import time
 import unittest
 from contextlib import redirect_stdout
 from unittest.mock import patch
@@ -19,7 +18,13 @@ from agents.analytics_agent.analytics_agent import AnalyticsAgent
 from agents.analytics_agent.__main__ import build_app as build_analytics_app
 from agents.robot_agent.robot_agent import RobotAgent
 from agents.robot_agent.__main__ import build_app as build_robot_app
-from agents.common.negotiation_models import Assessment, NegotiationRequest, SearchRequest, SearchResult
+from agents.common.search_models import SearchRequest, SearchResult
+from pydantic import BaseModel
+
+
+class Assessment(BaseModel):
+    can_help: bool
+    reason: str
 from agents.common.a2a_client import A2APeer
 from agents.client import print_result
 
@@ -43,28 +48,19 @@ def finish(status='found', url=ROBOT):
 
 def match_script(url=ROBOT, capabilities=None):
     return [discover(url), tool('set_requirements', capabilities=capabilities or ['picking', 'mobility']),
-            tool('propose_task', agent_url=url), tool('confirm_offer', agent_url=url), finish(url=url)]
+            assess(url), finish(url=url)]
+
+
+def assess(url=ROBOT, suitable=True, reason='The task fits the card skills and limits.'):
+    return tool('assess_agent', agent_url=url, suitable=suitable, reason=reason)
 
 
 def all_cards():
     return [discover(url) for url in (LANGUAGE, ANALYTICS, ROBOT)]
 
 
-class FakeLLM:
-    """Sub-agent inference only; the A2A transport uses the real SDK."""
-    def __init__(self, answer=None, error=None):
-        self.answer = answer or Assessment(can_help=True, reason='Within my capabilities and limits.')
-        self.error, self.calls = error, []
-
-    async def generate(self, system, payload, schema):
-        self.calls.append((payload, schema))
-        if self.error:
-            raise self.error
-        return self.answer
-
-
 class ScriptedManagerLLM:
-    """Chosen model actions for a scenario. No discovery/negotiation logic lives here."""
+    """Chosen model actions for a scenario. No discovery or assessment logic lives here."""
     def __init__(self, script):
         self.script, self.calls, self.error = script, [], None
 
@@ -107,7 +103,7 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
             ('analytics', AnalyticsAgent, build_analytics_app, ANALYTICS),
             ('robot', RobotAgent, build_robot_app, ROBOT),
         ]:
-            worker = agent_class(FakeLLM(), url=url)
+            worker = agent_class(url=url)
             self.workers[role] = worker
             self.network.apps[httpx.URL(url).port] = build_app(worker)
         self.manager_llm = ScriptedManagerLLM(match_script())
@@ -126,12 +122,12 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
         result = await self.ask('Pick up a 1 kg box and carry it indoors.')
         self.assertEqual(result.status, 'found')
         self.assertEqual(result.selected_agent.name, 'Robot Agent')
-        self.assertEqual([a.status for a in result.attempts], ['offered', 'confirmed'])
+        self.assertEqual([a.status for a in result.attempts], ['suitable'])
         self.assertEqual(len(result.discovered_agents), 1)
-        self.assertEqual(len(self.manager_llm.calls), 5)
-        self.assertEqual(len(self.workers['robot'].llm.calls), 1)
+        self.assertEqual(len(self.manager_llm.calls), 4)
+        self.assertFalse(any(method == 'POST' and '10000' not in url for url, method in self.network.requests))
         self.assertEqual([a['tool'] for a in result.manager_actions],
-                         ['discover_agent', 'set_requirements', 'propose_task', 'confirm_offer', 'finish_search'])
+                         ['discover_agent', 'set_requirements', 'assess_agent', 'finish_search'])
         self.assertFalse(any('10001' in url or '10002' in url for url, _ in self.network.requests))
         # Every next model turn sees the actual previous tool result.
         self.assertEqual(self.manager_llm.calls[1][-1]['role'], 'tool')
@@ -161,7 +157,7 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
             print_result(result, trace=True, thoughts=True)
         self.assertIn(text, output.getvalue())
         self.assertIn('Turn 2: No reasoning text returned by Ollama.', output.getvalue())
-        self.assertEqual(len(self.manager_llm.calls), 5)
+        self.assertEqual(len(self.manager_llm.calls), 4)
 
     async def test_trace_flag_keeps_json_output_valid(self):
         result = await self.ask('Pick up a box and move it indoors')
@@ -170,7 +166,7 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
             print_result(result, as_json=True, trace=True, thoughts=True)
         parsed = json.loads(output.getvalue())
         self.assertEqual(parsed['status'], 'found')
-        self.assertEqual(len(parsed['manager_turns']), 5)
+        self.assertEqual(len(parsed['manager_turns']), 4)
 
     async def test_full_a2a_search_with_native_ollama_tool_protocol(self):
         director = ScriptedManagerLLM(match_script())
@@ -188,11 +184,11 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
             self.manager.llm = OllamaJSON(http, 'http://127.0.0.1:11435/v1', 'gpt-oss:20b', 'ollama', 30)
             result = await self.ask('Pick up a 1 kg box and carry it indoors')
         self.assertEqual(result.status, 'found')
-        self.assertEqual(len(requests), 5)
+        self.assertEqual(len(requests), 4)
         self.assertEqual([r['inference_thoughts']['reasoning'] for r in result.manager_turns],
-                         ['  upstream fixture\n' + str(i) for i in range(1, 6)])
-        self.assertEqual([a.status for a in result.attempts], ['offered', 'confirmed'])
-        self.assertEqual(json.loads(requests[4]['messages'][-1]['content'])['status'], 'confirmed')
+                         ['  upstream fixture\n' + str(i) for i in range(1, 5)])
+        self.assertEqual([a.status for a in result.attempts], ['suitable'])
+        self.assertTrue(json.loads(requests[3]['messages'][-1]['content'])['suitable'])
 
     async def test_model_can_retry_a_failed_discovery(self):
         original = self.peer.discover
@@ -234,31 +230,29 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.required_capabilities, ['picking', 'flying'])
         self.assertEqual(result.status, 'not_found')
 
-    async def test_worker_declines_infeasible_task(self):
-        self.workers['robot'].llm.answer = Assessment(can_help=False, reason='20 kg exceeds 2 kg payload limit.')
-        self.manager_llm.script = all_cards() + [tool('propose_task', agent_url=ROBOT), finish('not_found', None)]
+    async def test_manager_rejects_card_limit_without_contacting_worker(self):
+        self.manager_llm.script = all_cards() + [assess(suitable=False,
+            reason='20 kg exceeds the card payload limit of 2 kg.'), finish('not_found', None)]
         result = await self.ask('Pick up a 20 kg box', ['picking'])
         self.assertEqual(result.status, 'not_found')
-        self.assertEqual(result.attempts[0].status, 'declined')
+        self.assertEqual(result.attempts[0].status, 'unsuitable')
+        self.assertIn('2 kg', result.assessments[0]['reason'])
+        self.assertFalse(any(method == 'POST' and '10000' not in url for url, method in self.network.requests))
 
-    async def test_model_reacts_to_decline_by_trying_another_agent(self):
+    async def test_model_can_select_another_card_after_negative_assessment(self):
         backup_url = 'http://127.0.0.1:10004/'
-        backup = RobotAgent(FakeLLM(), url=backup_url)
+        backup = RobotAgent(url=backup_url)
+        backup.card.description = 'Heavy robot: payload at most 30 kg.'
+        backup.card.skills[0].description = 'Pick up objects weighing at most 30 kg.'
         self.network.apps[10004] = build_robot_app(backup)
         self.manager.urls += (backup_url,)
-        self.workers['robot'].available = False
-
-        def choose_after_decline(messages):
-            self.assertEqual(json.loads(messages[-1]['content'])['status'], 'declined')
-            return discover(backup_url)
-
-        self.manager_llm.script = [discover(ROBOT), tool('propose_task', agent_url=ROBOT),
-            choose_after_decline, tool('propose_task', agent_url=backup_url),
-            tool('confirm_offer', agent_url=backup_url), finish(url=backup_url)]
-        result = await self.ask('Pick up a box', ['picking'])
+        self.manager_llm.script = [discover(ROBOT), assess(suitable=False, reason='20 kg exceeds 2 kg'),
+            discover(backup_url), assess(backup_url, reason='20 kg is within the 30 kg card limit'),
+            finish(url=backup_url)]
+        result = await self.ask('Pick up a 20 kg box', ['picking'])
         self.assertEqual(result.status, 'found')
         self.assertEqual(result.selected_agent.url, backup_url)
-        self.assertEqual([a.status for a in result.attempts], ['declined', 'offered', 'confirmed'])
+        self.assertEqual([a.status for a in result.attempts], ['unsuitable', 'suitable'])
 
     async def test_offline_agent_does_not_prevent_other_match(self):
         del self.network.apps[10001]
@@ -271,15 +265,7 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
         del self.network.apps[10003]
         self.manager_llm.script = all_cards() + [finish('not_found', None)]
         result = await self.ask('Pick up a box', ['picking'])
-        self.assertEqual(result.status, 'not_found')
-        self.assertIn('incomplete', result.summary)
-
-    async def test_model_failure_keeps_upstream_reason(self):
-        self.workers['robot'].llm.error = ModelError("model 'llama3.2:3b' not found")
-        self.manager_llm.script = all_cards() + [tool('propose_task', agent_url=ROBOT), finish('not_found', None)]
-        result = await self.ask('Pick up a box', ['picking'])
-        self.assertEqual(result.status, 'not_found')
-        self.assertIn('llama3.2:3b', result.attempts[0].detail)
+        self.assertEqual(result.status, 'error')
         self.assertIn('incomplete', result.summary)
 
     async def test_manager_failure_is_error(self):
@@ -295,12 +281,11 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.discovered_agents, [])
         self.assertEqual(result.summary, 'Which ability do you need?')
 
-    async def test_unconfirmed_offer_cannot_be_reported_found(self):
-        self.manager_llm.script = [discover(ROBOT), tool('propose_task', agent_url=ROBOT), finish(),
-                                  tool('confirm_offer', agent_url=ROBOT), finish()]
+    async def test_unassessed_card_cannot_be_selected(self):
+        self.manager_llm.script = [discover(ROBOT), finish(), assess(), finish()]
         result = await self.ask('Pick up a box', ['picking'])
         self.assertEqual(result.status, 'found')
-        self.assertIn('without a confirmed', result.manager_actions[2]['result']['error'])
+        self.assertIn('positive card-based assessment', result.manager_actions[1]['result']['error'])
 
     async def test_not_found_requires_roster_coverage_and_resolved_candidates(self):
         self.manager_llm.script = [finish('not_found', None)] + all_cards() + [finish('not_found', None)]
@@ -308,7 +293,7 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
         result = await self.ask('Pick up a box', ['picking'])
         self.assertEqual(result.status, 'error')
         self.assertIn('remaining agents', result.manager_actions[0]['result']['error'])
-        self.assertIn('Resolve matching', result.manager_actions[-1]['result']['error'])
+        self.assertIn('Assess matching', result.manager_actions[-1]['result']['error'])
 
     async def test_explicit_requirements_cannot_be_dropped(self):
         self.manager_llm.script = [tool('set_requirements', capabilities=['picking'])] + all_cards() + [finish('not_found', None)]
@@ -353,42 +338,40 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
         results = await asyncio.gather(self.ask('Pick up box A and carry it indoors'),
                                        self.ask('Pick up box B and carry it indoors'))
         self.assertTrue(all(r.status == 'found' for r in results))
-        self.assertNotEqual(results[0].selected_agent.offer_id, results[1].selected_agent.offer_id)
-        self.assertEqual([len(r.attempts) for r in results], [2, 2])
-        self.assertEqual([len(r.manager_actions) for r in results], [5, 5])
+        self.assertNotEqual(results[0].query, results[1].query)
+        results[0].assessments.clear()
+        self.assertEqual(len(results[1].assessments), 1)
+        self.assertEqual([len(r.attempts) for r in results], [1, 1])
+        self.assertEqual([len(r.manager_actions) for r in results], [4, 4])
 
-    async def test_confirmation_requires_matching_offer_and_context(self):
-        worker = self.workers['robot']
-        request = NegotiationRequest(action='propose', request_id='abc', query='Pick up a 1 kg box',
-                                     required_capabilities=['picking'])
-        offered = await worker.negotiate(request, 'context-a')
-        confirm = request.model_copy(update={'action': 'confirm', 'offer_id': offered.offer_id})
-        self.assertEqual((await worker.negotiate(confirm, 'context-b')).status, 'declined')
-        self.assertEqual((await worker.negotiate(confirm.model_copy(update={'query': 'Pick up a car'}), 'context-a')).status, 'declined')
-        self.assertEqual((await worker.negotiate(confirm, 'context-a')).status, 'confirmed')
-        self.assertEqual((await worker.negotiate(confirm, 'context-a')).status, 'confirmed')
-        worker.offers[offered.offer_id].expires = time.monotonic() - 1
-        self.assertEqual((await worker.negotiate(confirm, 'context-a')).status, 'declined')
-
-    async def test_worker_cannot_offer_undeclared_capability(self):
-        request = NegotiationRequest(action='propose', request_id='abc', query='Fly', required_capabilities=['flying'])
-        reply = await self.workers['robot'].negotiate(request, 'context')
-        self.assertEqual(reply.status, 'declined')
-        self.assertEqual(self.workers['robot'].llm.calls, [])
-
-    async def test_forged_confirmation_cannot_produce_found(self):
-        original = self.peer.send
-        async def send(card, data, context):
-            reply = await original(card, data, context)
-            if data.get('action') == 'confirm':
-                reply['offer_id'] = 'wrong-offer'
-            return reply
-        self.peer.send = send
-        self.manager_llm.script = all_cards() + [tool('propose_task', agent_url=ROBOT),
-            tool('confirm_offer', agent_url=ROBOT), finish('not_found', None)]
-        result = await self.manager.search(SearchRequest(query='Pick up a box', required_capabilities=['picking']))
+    async def test_unsupported_skill_cannot_receive_positive_assessment(self):
+        self.manager_llm.script = [discover(ROBOT), assess()] + all_cards() + [finish('not_found', None)]
+        result = await self.ask('Fly', ['flying'])
         self.assertEqual(result.status, 'not_found')
-        self.assertIn('different offer', result.attempts[-1].detail)
+        self.assertIn('lacks required capabilities', result.manager_actions[1]['result']['error'])
+
+    async def test_changed_requirements_invalidate_assessments(self):
+        self.manager_llm.script = match_script()[:-1] + [
+            tool('set_requirements', capabilities=['picking']), finish(), assess(), finish()]
+        result = await self.ask('Pick up a box')
+        self.assertEqual(result.status, 'found')
+        self.assertIn('positive card-based assessment', result.manager_actions[4]['result']['error'])
+
+    async def test_refreshed_card_invalidates_assessment(self):
+        self.manager_llm.script = match_script()[:-1] + [discover(ROBOT), finish(), assess(), finish()]
+        result = await self.ask('Pick up a box and move it indoors')
+        self.assertEqual(result.status, 'found')
+        self.assertIn('positive card-based assessment', result.manager_actions[4]['result']['error'])
+
+    async def test_negotiation_tools_are_unavailable(self):
+        self.manager_llm.script = [tool('propose_task', agent_url=ROBOT),
+            tool('confirm_offer', agent_url=ROBOT)] + match_script()
+        result = await self.ask('Pick up a box and move it indoors')
+        self.assertEqual(result.status, 'found')
+        self.assertTrue(all('Unknown tool' in a['result']['error'] for a in result.manager_actions[:2]))
+        self.assertNotIn('offer_id', result.selected_agent.model_dump())
+
+
 
 class ModelClientTests(unittest.IsolatedAsyncioTestCase):
     async def test_native_tool_call_round_trip(self):
@@ -493,9 +476,8 @@ class ConfigurationTests(unittest.TestCase):
     def test_model_defaults_and_robot_skills(self):
         with patch("agents.common.settings.load_dotenv"), patch.dict("os.environ", {}, clear=True):
             settings = Settings.from_env()
-        self.assertEqual(settings.subagent_model, "llama3.2:3b")
         self.assertEqual(settings.manager_model, "gpt-oss:20b")
-        card = RobotAgent(FakeLLM(), url=settings.urls["robot"]).card
+        card = RobotAgent(url=settings.urls["robot"]).card
         self.assertEqual({s.id for s in card.skills}, {"picking", "mobility"})
         self.assertFalse(card.capabilities.streaming)
 

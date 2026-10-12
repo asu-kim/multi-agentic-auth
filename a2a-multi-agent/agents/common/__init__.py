@@ -1,1 +1,1 @@
-"""Shared A2A transport, negotiation, configuration, and Ollama utilities."""
+"""Shared A2A transport, search models, configuration, and Ollama utilities."""
