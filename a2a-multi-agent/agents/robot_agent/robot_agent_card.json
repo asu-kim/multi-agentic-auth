@@ -11,15 +11,15 @@
     "text/plain",
     "application/json"
   ],
-  "description": "Robot with object picking and ground mobility capabilities. Limits: Picking payload at most 2 kg. Flat indoor floors only. No flying, stairs, or outdoor travel.",
+  "description": "Robot with object picking and ground mobility capabilities. Limits: Flat indoor floors only. No flying, stairs, or outdoor travel.",
   "name": "Robot Agent",
   "preferredTransport": "JSONRPC",
   "protocolVersion": "0.3.0",
   "skills": [
     {
-      "description": "Grasp and pick up objects weighing at most 2 kg.",
+      "description": "Grasp and pick up objects.",
       "examples": [
-        "Pick up a 1 kg box."
+        "Pick up a box."
       ],
       "id": "picking",
       "name": "Object picking",
