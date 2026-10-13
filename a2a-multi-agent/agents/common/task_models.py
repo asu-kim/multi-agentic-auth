@@ -7,6 +7,7 @@ class TaskRequest(StrictModel):
     protocol: Literal["agent-task/v1"] = "agent-task/v1"
     action: Literal["execute"] = "execute"
     query: str = Field(min_length=1, max_length=32000)
+    requested_tool: Literal["establish_secure_communication"] | None = None
 
 
 class TaskAnswer(StrictModel):

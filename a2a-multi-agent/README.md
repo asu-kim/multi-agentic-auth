@@ -288,3 +288,14 @@ Errors/declines become overall `error`, and requests for clarification become
 uncertain failures are not automatically retried. The robot service must be running
 with its Node config and resource target configured. Merely finding an agent does
 not prove that its task succeeded; inspect the worker result.
+
+### Explicit robot tool dispatch
+
+Manager connection requests include `requested_tool: "establish_secure_communication"`
+in the `agent-task/v1` payload. Robot executes this allowlisted, zero-argument tool
+directly, without asking its LLM to reinterpret the request. The tool reads
+`IOTAUTH_ROBOT_CONFIG` and `IOTAUTH_ROBOT_RESOURCE`; credentials stay in the Node
+configuration. Missing files, denied authorization, and connection failures are
+reported by the tool, not guessed by the model. Ordinary natural-language robot
+requests still use LLM action selection. Other workers reject explicit tools they
+do not implement. Restart both manager and robot after updating the code.

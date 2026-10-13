@@ -8,6 +8,8 @@ class TaskAgent:
         self.instructions, self.simulation = instructions, simulation
 
     async def execute_task(self, request: TaskRequest) -> TaskResult:
+        if request.requested_tool is not None:
+            return TaskResult(agent_name=self.card.name, status="declined", output="This agent does not implement the requested tool.")
         if not request.query.strip():
             return TaskResult(agent_name=self.card.name, status="input_required", output="Provide a nonempty task.")
         if self.llm is None:

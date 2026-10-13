@@ -159,13 +159,15 @@ class ManagerTools:
             return self.task_result
         card = self.cards[url]
         query = self.request.query
+        requested_tool = None
         if "secure_communication" in {skill.id for skill in card.skills}:
+            requested_tool = "establish_secure_communication"
             query = "Establish secure communication with your configured target resource using establish_secure_communication. Report whether the connection succeeded."
         # Record before sending: failed/uncertain requests must not be replayed.
         self.dispatched_url = url
         self.task_result = {"status": "error", "output": "Worker request interrupted; execution outcome unknown. Do not retry automatically."}
         try:
-            response = await self.peer.send(card, TaskRequest(query=query).model_dump(), uuid4().hex)
+            response = await self.peer.send(card, TaskRequest(query=query, requested_tool=requested_tool).model_dump(exclude_none=True), uuid4().hex)
             self.task_result = TaskResult.model_validate(response).model_dump()
         except Exception as exc:
             self.task_result = {"status": "error", "output": f"Worker request failed; execution may be uncertain: {exc}"}
