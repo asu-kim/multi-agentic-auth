@@ -1,5 +1,7 @@
-"""Manager decisions backed by discovered cards; no worker messages or offers."""
+"""Manager decisions backed by discovered cards; delegate authority and dispatch to the selected worker."""
 from typing import Literal
+from uuid import uuid4
+from agents.common.task_models import TaskRequest, TaskResult
 
 from agents.manager_agent.iotauth_delegate import IoTAuthDelegate
 
@@ -41,6 +43,7 @@ TOOL_SPECS = {
     "set_requirements": (Requirements, "Set ALL required capabilities; preserve unsupported abilities. Explicit user IDs cannot change. Changes clear assessments."),
     "assess_agent": (CardAssessment, "Record YOUR suitability judgment based on the discovered card and original task, including all limits. No request is sent to the agent."),
     "delegate_authority": (AgentAddress, "After a positive assessment, grant the identified agent's configured IoTAuth group authority over Resources for 1*day through Auth. Call before finish_search. A failed or uncertain request must not be retried automatically."),
+    "dispatch_task": (AgentAddress, "After successful delegation, send the selected agent its task over A2A. For a secure-communication capable robot, request connection to its configured target; otherwise forward the original task. Observe the worker result before finishing. Never retry uncertain execution."),
     "finish_search": (Finish, "Select a positively assessed card matching all required skills, or report not_found after inspecting the roster and rejecting every skill-matching candidate."),
     "ask_user": (Clarification, "Ask a specific question if requirements or feasibility details are missing."),
 }
@@ -67,6 +70,8 @@ class ManagerTools:
         self.actions: list[dict] = []
         self.finished: SearchResult | None = None
         self.delegations: dict[str, dict] = {}
+        self.dispatched_url: str | None = None
+        self.task_result: dict | None = None
 
     def address(self, value: str) -> str:
         url = value.rstrip("/")
@@ -140,6 +145,32 @@ class ManagerTools:
             self.delegations[url] = await IoTAuthDelegate().delegate(url)
         return self.delegations[url]
 
+    async def dispatch_task(self, args: AgentAddress) -> dict:
+        url = self.address(args.agent_url)
+        assessment = self.assessments.get(url)
+        if (url not in self.cards or assessment is None or not assessment.suitable
+                or not self.required or self.missing_skills(self.cards[url])):
+            raise ValueError("Discover and positively assess the selected agent before dispatch.")
+        if self.delegations.get(url, {}).get("status") != "delegated":
+            raise ValueError("Successful authority delegation is required before dispatch.")
+        if self.dispatched_url is not None:
+            if self.dispatched_url != url:
+                raise ValueError("A task was already dispatched to another agent in this search.")
+            return self.task_result
+        card = self.cards[url]
+        query = self.request.query
+        if "secure_communication" in {skill.id for skill in card.skills}:
+            query = "Establish secure communication with your configured target resource using establish_secure_communication. Report whether the connection succeeded."
+        # Record before sending: failed/uncertain requests must not be replayed.
+        self.dispatched_url = url
+        self.task_result = {"status": "error", "output": "Worker request interrupted; execution outcome unknown. Do not retry automatically."}
+        try:
+            response = await self.peer.send(card, TaskRequest(query=query).model_dump(), uuid4().hex)
+            self.task_result = TaskResult.model_validate(response).model_dump()
+        except Exception as exc:
+            self.task_result = {"status": "error", "output": f"Worker request failed; execution may be uncertain: {exc}"}
+        return self.task_result
+
     async def finish_search(self, args: Finish) -> dict:
         if not self.required:
             raise ValueError("Set required capabilities or ask the user for clarification before finishing.")
@@ -152,16 +183,29 @@ class ManagerTools:
             if delegation is not None and delegation.get("status") != "delegated":
                 self.finished = self.result("error", "Agent identified, but Auth delegation was not confirmed; see manager_actions. Do not retry automatically: the grant may have been applied.")
                 return {"status": self.finished.status, "summary": self.finished.summary}
+            if self.dispatched_url is not None and self.dispatched_url != url:
+                raise ValueError("Finish with the agent that received the dispatched task.")
+            if delegation and self.dispatched_url is None:
+                raise ValueError("Dispatch the task to the delegated agent before finishing.")
             card = self.cards[url]
             if self.missing_skills(card):
                 raise ValueError("Selected card does not cover all required capabilities.")
             selected = SelectedAgent(name=card.name, url=card.url,
                 capabilities=[s.id for s in card.skills], reason=assessment.reason)
-            self.finished = self.result("found",
-                f"Selected {selected.name} based on its advertised card: {assessment.reason} "
-                "Availability and execution have not been checked."
-                + (f" Auth confirmed delegation of {delegation['subject']} authority over Resources for 1*day."
-                   if delegation else ""), selected)
+            summary = f"Selected {selected.name}: {assessment.reason}"
+            if delegation:
+                summary += f" Auth confirmed delegation to {delegation['subject']}."
+            status = "found"
+            if self.task_result is not None:
+                worker_status = self.task_result["status"]
+                summary += f" Worker reported {worker_status}: {self.task_result['output']}"
+                if worker_status == "input_required":
+                    status = "input_required"
+                elif worker_status in {"error", "declined"}:
+                    status = "error"
+            else:
+                summary += " Availability and execution have not been checked."
+            self.finished = self.result(status, summary, selected)
         else:
             if args.agent_url is not None:
                 raise ValueError("Use null for agent_url when reporting not_found.")
@@ -187,6 +231,7 @@ class ManagerTools:
     def result(self, status: str, summary: str, selected: SelectedAgent | None = None) -> SearchResult:
         return SearchResult(status=status, query=self.request.query, required_capabilities=self.required,
             selected_agent=selected, summary=summary, attempts=list(self.attempts),
+            task_result=self.task_result,
             assessments=[a.model_dump() for a in self.assessments.values()],
             discovered_agents=[{"name": card.name, "url": card.url, "capabilities": [s.id for s in card.skills],
                                 "description": card.description} for card in self.cards.values()],

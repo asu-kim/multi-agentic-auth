@@ -2,21 +2,20 @@
 
 An autonomous LLM manager reads independent agents' **A2A Agent Cards**, compares
 skills and declared limits with the user's request, and selects **one** suitable
-agent. There is no proposal/confirmation negotiation, task reservation, or automatic task execution during selection. A `found` result means the card appears suitable;
+agent. There is no proposal/confirmation negotiation, task reservation, before authority delegation. After successful delegation, the manager dispatches a worker task. A `found` result means the card appears suitable;
 it does not confirm current availability or actual ability to execute the task.
 
 | Agent | Model | Port | Advertised skill IDs |
 | --- | --- | --- | --- |
 | Manager | `gpt-oss:20b` | 10000 | `agent_discovery` |
 | Language | `llama3.2:3b` | 10001 | `translation`, `summarization` |
-| Analytics | `llama3.2:3b` | 10002 | `statistics`, `anomaly_detection` |
-| Robot | `llama3.2:3b` | 10003 | `picking`, `mobility` |
+| Analytics | `llama3.2:3b` | 10002 | `statistics` |
+| Robot | `llama3.2:3b` | 10003 | `picking`, `mobility`, `secure_communication` |
 
 Each agent is a separate server process with its own stored JSON card. The manager
 knows configured addresses only; it learns abilities by fetching cards over HTTP
 using the A2A SDK's card resolver. User requests to the manager still use A2A 0.3
-JSON-RPC `message/send` through `ClientFactory`. The manager never sends task
-messages to the workers. All four agents have their own Ollama client. Worker inference runs only for explicit task requests; card discovery never calls a worker model.
+JSON-RPC `message/send` through `ClientFactory`. After successful IoTAuth delegation, the manager sends a task message to the selected worker. All four agents have their own Ollama client. Worker inference runs only for explicit task requests; card discovery never calls a worker model.
 
 ## Decision loop
 
@@ -27,6 +26,7 @@ User -> A2A -> Manager LLM
                  +-> set_requirements: interpret all required skills
                  +-> assess_agent: record the manager's own card-based judgment
                  +-> delegate_authority: grant the selected agent's group authority through IoTAuth
+                 +-> dispatch_task: send an A2A task after successful delegation
                  +-> finish_search: select an agent or report no suitable card
                  +-> ask_user: request missing details
 ```
@@ -117,7 +117,7 @@ in a separate terminal with `python -m agents.manager_agent`,
 In another terminal with the same environment:
 
 ```bash
-python -m agents.client "Find an agent to pick up a 1 kg box and move it indoors." --json
+python -m agents.client "Find an agent to pick up a box and move it indoors." --json
 python -m agents.client "Translate written English text into Spanish." --capability translation --json
 python -m agents.client "Find anomalies in supplied numerical readings." --capability anomaly_detection --json
 python -m agents.client "Pick up a 20 kg box." --capability picking --json
@@ -175,8 +175,8 @@ Agent authority delegation uses the configured IoTAuth manager identity.
 
 ## Explicit worker tasks
 
-Selection via `agents.client` remains card-only and never automatically dispatches
-work. To ask a worker to perform a task, use the separate client:
+The manager dispatches work after successful delegation. Robot selections receive
+a secure-connection task; other workers receive the original request. To ask a worker to perform a task, use the separate client:
 
 ```bash
 python -m agents.task_client "Translate to Korean: Hello, how are you?" --agent language --json
@@ -192,8 +192,8 @@ request/response interface; it does not preserve conversation state or negotiate
 Workers share `TaskAgent` and `TaskExecutor`, with their own model clients, cards,
 and role instructions. Language generates translations or summaries; Analytics
 produces LLM-based analysis of supplied data (no code execution or live sensors).
-Robot produces plans only: the runtime reports successful robot responses as
-`simulated`, never `completed`, and sends no hardware commands. Actual robot
+Robot produces simulated plans for physical tasks and sends no hardware commands.
+Its secure-communication tool can return `completed` after a confirmed IoTAuth connection. Actual robot
 execution requires a future hardware/tool adapter.
 
 Results contain `agent_name`, `status`, and `output`. Status is `completed`,
@@ -249,3 +249,42 @@ reported as an error; a sent request may already have changed Auth state, so it
 is not retried automatically. Repeated tool calls within the same search reuse
 the first result. The subprocess is cleaned up on success, failure, or cancellation.
 This does not send a task to the Robot or verify its physical availability.
+
+## Robot secure communication tool
+
+The robot can select `establish_secure_communication` through its structured LLM
+action response. Send an explicit worker task:
+
+```bash
+python -m agents.task_client "Establish secure communication with the configured resource." --agent robot --json
+```
+
+The tool launches `node user.js configs/net1/robotAgent.config`,
+waits for the complete `current parameters: {...}` initialization log, then sends
+`initComm net1.resource`. Success requires the exact log `switching to IN_COMM`. The robot server
+keeps the Node process alive, reuses a live connection, and closes it on shutdown.
+Failures and timeouts return task status `error`; confirmed connection returns
+`completed`. Physical tasks still return simulated plans. After successful delegation the manager dispatches a secure-connection task to the selected robot.
+
+Configure `IOTAUTH_ROBOT_CONFIG` (use `config/net1/robotAgent.config` if that is your
+actual path), `IOTAUTH_ROBOT_RESOURCE`, and the shared `IOTAUTH_ENTITY_DIR`,
+`IOTAUTH_NODE`, and `IOTAUTH_TIMEOUT_SECONDS`. Provision the robot credentials and
+Auth policy and start the resource server first. Its name must appear in the robot
+config's `targetServerInfoList`. This tool connects only; it sends no application
+payload or physical robot commands.
+
+## Manager-to-worker handoff
+
+The manager now follows assessment → authority delegation → `dispatch_task` →
+`finish_search`. `dispatch_task` uses the selected discovered card and A2A
+`agent-task/v1`, and requires a current positive assessment plus confirmed delegation.
+For a robot advertising `secure_communication`, it asks the robot to establish a
+connection to its configured `IOTAUTH_ROBOT_RESOURCE`; it does not start physical
+pickup or movement. Other selected workers receive the original request.
+
+The worker result appears in `task_result`, the action trace, and the final summary.
+Errors/declines become overall `error`, and requests for clarification become
+`input_required`. Duplicate dispatch calls within a search reuse the recorded result;
+uncertain failures are not automatically retried. The robot service must be running
+with its Node config and resource target configured. Merely finding an agent does
+not prove that its task succeeded; inspect the worker result.

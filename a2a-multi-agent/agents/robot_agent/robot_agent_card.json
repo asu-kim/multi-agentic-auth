@@ -37,6 +37,18 @@
       "tags": [
         "mobility"
       ]
+    },
+    {
+      "id": "secure_communication",
+      "name": "Secure resource communication",
+      "description": "Establish an IoTAuth secure connection to the configured resource using the robot Node entity.",
+      "tags": [
+        "iotauth",
+        "secure_communication"
+      ],
+      "examples": [
+        "Establish secure communication with the configured resource."
+      ]
     }
   ],
   "url": "http://127.0.0.1:10003/",

@@ -33,6 +33,7 @@ class SearchResult(StrictModel):
     query: str
     required_capabilities: list[str]
     selected_agent: SelectedAgent | None = None
+    task_result: dict | None = None
     summary: str
     discovered_agents: list[dict] = Field(default_factory=list)
     attempts: list[Attempt] = Field(default_factory=list)
