@@ -16,6 +16,7 @@ def build_app(agent: RobotAgent, http=None):
             try:
                 yield
             finally:
+                await agent.grasp_tool.close()
                 await agent.tools.close()
 
     app.router.lifespan_context = lifespan

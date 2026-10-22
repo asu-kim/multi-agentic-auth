@@ -17,7 +17,7 @@
   "protocolVersion": "0.3.0",
   "skills": [
     {
-      "description": "Grasp and pick up objects.",
+      "description": "Camera-guided pickup and hold of a single rectangular tabletop box within the calibrated workspace. Requires registered depth and enabled robot grasp configuration. Motion completion is not sensor-verified pickup.",
       "examples": [
         "Pick up a box."
       ],

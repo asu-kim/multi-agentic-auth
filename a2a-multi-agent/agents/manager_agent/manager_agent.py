@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 SYSTEM_INSTRUCTION = """Select ONE agent using only A2A Agent Cards. You choose
 which tool to call and which configured address to inspect next; no discovery order
 is required. You know addresses only until discover_agent returns their cards.
-Use set_requirements for ALL required capabilities. Match synonyms to card skill
+Use set_requirements for ALL required capabilities. If required_capabilities is empty, 
+infer all required capabilities from the query. Match synonyms to card skill
 IDs, but preserve unsupported requirements as descriptive snake_case IDs. Never
 omit a requirement to force a match. Explicit user requirements cannot change.
 

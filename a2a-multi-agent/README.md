@@ -299,3 +299,89 @@ configuration. Missing files, denied authorization, and connection failures are
 reported by the tool, not guessed by the model. Ordinary natural-language robot
 requests still use LLM action selection. Other workers reject explicit tools they
 do not implement. Restart both manager and robot after updating the code.
+
+## Camera-guided box pickup (ROSMASTER M3 Pro / ROS2)
+
+`grasp_box` is a zero-argument robot tool. It uses a synchronized RGB/depth stream
+and calibrated depth contours to select a single rectangular foreground box in a
+configured pickup region. It does not filter colors or require mouse/keyboard
+selection. This is a constrained tabletop detector, not general object recognition:
+a rectangle can be a non-box object; provide a clear scene with one suitable box.
+
+The implementation adapts the supplied `shape_recognize.py` perception approach
+and `grasp_desktop.py` camera transform, FK/IK service fields, wrist convention,
+and arm message fields. It does not import/run the interactive vendor demo.
+`KCF_follow_desktop.py` requires an external `/pos_xyz` producer and is not used.
+The worker moves to the viewing pose, detects three stable frames, checks depth,
+size, target workspace and joint bounds, approaches, closes, then lifts and holds.
+No chassis commands, sorting release, or automatic repeated grasp are issued.
+
+### Deploy and calibrate
+
+1. Copy `config/camera_grasp.example.json` to the robot. The included camera/arm
+   constants come from the pasted demos and are **starting values**, not verified
+   calibration for your robot. Verify intrinsics, camera-to-end transform, depth
+   registration, viewing pose, gripper angles, allowed joint/workspace bounds and
+   offsets against `arm_kin/param/offset_value.yaml`. Verify clearance along the
+   whole approach/lift path; bounds alone are not collision checking.
+2. Set `depth_scale` from actual depth units: the supplied demo divides float depth
+   by 1000, so its example is .001. If your camera publishes meters, use 1. Do not
+   infer units only from 16UC1 versus 32FC1. RGB and depth must be registered and
+   match the calibrated dimensions; no blind resizing is performed.
+3. Set `calibrated` and `depth_registered_to_color` true only after checking them.
+   Set `attempt_lock` to a persistent writable path on the robot. Set the ROI and
+   object size/depth ranges for your tabletop. Clock stamps must match ROS time.
+4. Source ROS2 and `~/yahboomcar_ws/install/setup.bash`, then start the camera,
+   arm controller and kinematics service, using the usual
+   `ros2 launch M3Pro_demo camera_arm_kin.launch.py`. Do **not** also run grasp,
+   grasp_desktop, shape_recognize, KCF or other arm/chassis command producers.
+5. The separate ROS interpreter needs rclpy, arm_msgs, arm_interface, sensor_msgs,
+   cv_bridge, message_filters, NumPy and OpenCV. The agent's Python 3.12+ venv
+   does not need to import ROS. Both processes inherit the same ROS environment.
+
+Preview perception with the arm already at the configured viewing pose:
+
+```bash
+/usr/bin/python3 agents/robot_agent/ros_camera_grasp.py --config /home/jetson/camera_grasp.json --preview
+```
+
+Preview publishes no motion. It assumes the configured arm pose; this interface
+has no measured-joint feedback. A live grasp also assumes the commanded viewing
+pose is reached after its motion time. Test/calibrate this before use.
+
+Configure robotAgent:
+
+```dotenv
+ROBOT_GRASP_ENABLED=true
+ROBOT_GRASP_CONFIG=/home/jetson/camera_grasp.json
+ROBOT_ROS_PYTHON=/usr/bin/python3
+```
+
+Then request the actual tool explicitly:
+
+```bash
+python -m agents.task_client "Use the camera to grab the box." --agent robot --tool grasp_box --json
+```
+
+Natural-language worker requests can select the same tool. The manager's existing
+automatic handoff remains a secure-connection task; it does not silently start
+physical pickup. Send the explicit worker request after that handoff.
+
+### Results and stopping
+
+`completed` means approach/close/lift commands were sent and their configured
+motion times elapsed. There is no grip/contact feedback in the supplied interface;
+the response explicitly says pickup is not sensor-verified. No `grasp_done` from
+another node is mistaken for completion of this request.
+
+The tool permits one attempt per agent process and creates the persistent
+`attempt_lock` before moving. After success, timeout or interruption, inspect and
+reset the robot before manually removing that file and restarting the agent.
+This prevents automatic reopening of a potentially loaded gripper. Timeout or
+cancellation terminates the child and stops subsequent commands. It cannot retract
+already-issued servo motion: the supplied API has no verified emergency-stop
+command. Keep the physical stop accessible during supervised commissioning.
+
+Local tests cover synthetic images and mocked ROS messages/services. Real camera,
+calibration, contact sensing, collision avoidance and physical pickup are not
+validated on the development Mac.

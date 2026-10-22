@@ -16,7 +16,7 @@ async def run(args):
         peer = A2APeer(http)
         card = await peer.discover(args.url or settings.urls[args.agent])
         result = TaskResult.model_validate(await peer.send(card,
-            TaskRequest(query=args.query).model_dump(), uuid4().hex))
+            TaskRequest(query=args.query, requested_tool=getattr(args, "tool", None)).model_dump(exclude_none=True), uuid4().hex))
     print(json.dumps(result.model_dump(), indent=2, ensure_ascii=False) if args.json
           else f"{result.agent_name} [{result.status}]\n{result.output}")
     return 0 if result.status in {"completed", "simulated"} else 1
@@ -29,6 +29,7 @@ def main():
     target.add_argument("--agent", choices=["language", "analytics", "robot"])
     target.add_argument("--url", help="Worker A2A URL, for example selected_agent.url")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--tool", choices=["establish_secure_communication", "grasp_box"], help="Explicit robot tool; bypass LLM action selection")
     args = parser.parse_args()
     try:
         sys.exit(asyncio.run(run(args)))

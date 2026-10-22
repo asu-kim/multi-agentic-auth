@@ -1,0 +1,119 @@
+{
+  "calibrated": false,
+  "depth_registered_to_color": false,
+  "rgb_topic": "/camera/color/image_raw",
+  "depth_topic": "/camera/depth/image_raw",
+  "width": 640,
+  "height": 480,
+  "camera_k": [
+    477.57421875,
+    0,
+    319.3820495605469,
+    0,
+    477.55718994140625,
+    238.64108276367188,
+    0,
+    0,
+    1
+  ],
+  "camera_to_end": [
+    [
+      0,
+      0,
+      1,
+      -0.1
+    ],
+    [
+      -1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      -1,
+      0,
+      0.0499
+    ],
+    [
+      0,
+      0,
+      0,
+      1
+    ]
+  ],
+  "offset_m": [
+    0,
+    0,
+    0
+  ],
+  "view_joints": [
+    90,
+    100,
+    0,
+    0,
+    90,
+    0
+  ],
+  "closed_deg": 135,
+  "lift_joint2_deg": 120,
+  "ik_pitch": 1.3962614348313127,
+  "joint_limits_deg": [
+    [
+      0,
+      180
+    ],
+    [
+      0,
+      180
+    ],
+    [
+      0,
+      180
+    ],
+    [
+      0,
+      90
+    ],
+    [
+      45,
+      135
+    ],
+    [
+      0,
+      180
+    ]
+  ],
+  "workspace_m": [
+    [
+      0.13,
+      0.27
+    ],
+    [
+      -0.08,
+      0.08
+    ],
+    [
+      0.01,
+      0.2
+    ]
+  ],
+  "roi": [
+    100,
+    60,
+    540,
+    400
+  ],
+  "depth_scale": 0.001,
+  "depth_min_m": 0.08,
+  "depth_max_m": 0.6,
+  "surface_band_m": 0.012,
+  "box_min_m": 0.02,
+  "box_max_m": 0.06,
+  "min_area_px": 400,
+  "max_area_px": 12000,
+  "move_ms": 2000,
+  "settle_seconds": 1.5,
+  "frame_max_age": 0.5,
+  "attempt_lock": "/home/jetson/.robot_agent_grasp_attempt"
+}
