@@ -478,7 +478,7 @@ class ConfigurationTests(unittest.TestCase):
             settings = Settings.from_env()
         self.assertEqual(settings.manager_model, "gpt-oss:20b")
         card = RobotAgent(url=settings.urls["robot"]).card
-        self.assertEqual({s.id for s in card.skills}, {"picking", "mobility"})
+        self.assertEqual({s.id for s in card.skills}, {"picking", "mobility", "secure_communication"})
         self.assertFalse(card.capabilities.streaming)
 
 
