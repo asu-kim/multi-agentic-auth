@@ -26,10 +26,10 @@ def main():
     parser = argparse.ArgumentParser(description="Send an explicit LLM task to a worker over A2A")
     parser.add_argument("query")
     target = parser.add_mutually_exclusive_group(required=True)
-    target.add_argument("--agent", choices=["language", "analytics", "robot"])
+    target.add_argument("--agent", choices=["drone", "rover", "forklift"])
     target.add_argument("--url", help="Worker A2A URL, for example selected_agent.url")
     parser.add_argument("--json", action="store_true")
-    parser.add_argument("--tool", choices=["establish_secure_communication", "grasp_box"], help="Explicit robot tool; bypass LLM action selection")
+    parser.add_argument("--tool", choices=["establish_secure_communication", "grasp_box"], help="Explicit forklift tool; bypass LLM action selection")
     args = parser.parse_args()
     try:
         sys.exit(asyncio.run(run(args)))

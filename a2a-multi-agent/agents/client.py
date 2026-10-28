@@ -7,7 +7,7 @@ from uuid import uuid4
 import httpx
 
 from agents.common.settings import Settings
-from agents.common.search_models import SearchRequest, SearchResult
+from agents.common.search_models import SearchRequest, SearchResult, DelegationPreferences
 from agents.common.a2a_client import A2APeer
 
 
@@ -51,7 +51,9 @@ async def run(args):
     async with httpx.AsyncClient(timeout=settings.a2a_timeout, trust_env=False) as http:
         peer = A2APeer(http)
         card = await peer.discover(args.url or settings.urls["manager"])
-        request = SearchRequest(query=args.query, required_capabilities=args.capability)
+        resource, validity = getattr(args, "resource", None), getattr(args, "validity", None)
+        scope = DelegationPreferences(resource=resource, validity=validity) if resource or validity else None
+        request = SearchRequest(query=args.query, required_capabilities=args.capability, delegation=scope)
         result = SearchResult.model_validate(await peer.send(card, request.model_dump(), uuid4().hex))
         print_result(result, as_json=args.json, trace=args.trace, thoughts=args.thoughts)
         return 0 if result.status == "found" else 1
@@ -62,6 +64,8 @@ def main():
     parser.add_argument("query")
     parser.add_argument("--capability", action="append", default=[],
                         help="Exact required skill ID; repeat for multiple requirements. The manager still chooses its actions.")
+    parser.add_argument("--resource", help="Optional resource group; otherwise the manager selects from IOTAUTH_GRAPH_FILE")
+    parser.add_argument("--validity", help="Optional duration, e.g. 30*min; otherwise use matching graph privilege validity")
     parser.add_argument("--url", help="Manager's A2A base URL")
     parser.add_argument("--json", action="store_true", help="Print result, card assessments and provider reasoning; omit card transport metadata")
     parser.add_argument("--trace", action="store_true", help="Print manager tool actions after the result")

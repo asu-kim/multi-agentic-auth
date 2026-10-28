@@ -1,0 +1,44 @@
+{
+  "capabilities": {
+    "pushNotifications": false,
+    "streaming": false
+  },
+  "defaultInputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "description": "Warehouse forklift agent modeled on Section 2.3: reaches the middle shelf and carries heavy items. These are scenario capabilities, not a claim of implemented forklift hardware control. Limits: Middle-shelf retrieval and heavy-item transport; no top-shelf or flight capability is advertised. Capability does not grant access: protected resources require a valid, unrevoked permission for the authorized task interval.",
+  "name": "Forklift Agent",
+  "preferredTransport": "JSONRPC",
+  "protocolVersion": "0.3.0",
+  "skills": [
+    {
+      "id": "reach_middle_shelf",
+      "name": "Reach middle shelf",
+      "description": "Model the physical capability to reach a middle-shelf storage location for retrieval. Access to protected items requires valid authorization.",
+      "tags": [
+        "reach_middle_shelf"
+      ],
+      "examples": [
+        "Retrieve an authorized target item from the middle shelf."
+      ]
+    },
+    {
+      "id": "carry_heavy_items",
+      "name": "Carry heavy items",
+      "description": "Model transport of heavy items in the warehouse scenario. No numerical payload limit is specified; actual execution depends on an appropriate hardware implementation and valid access permission.",
+      "tags": [
+        "carry_heavy_items"
+      ],
+      "examples": [
+        "Carry an authorized heavy target item retrieved from the middle shelf."
+      ]
+    }
+  ],
+  "url": "http://127.0.0.1:10003/",
+  "version": "0.1.0"
+}

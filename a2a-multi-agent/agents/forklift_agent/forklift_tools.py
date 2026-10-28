@@ -1,11 +1,11 @@
-"""Robot-owned IoTAuth connection; retained until disconnect or server shutdown."""
+"""Forklift-owned IoTAuth connection; retained until disconnect or server shutdown."""
 import asyncio
 import os
 import re
 from pathlib import Path
 
 
-class RobotTools:
+class ForkliftTools:
     def __init__(self):
         self.process = None
         self.reader = None
@@ -19,12 +19,12 @@ class RobotTools:
             await self.close()
             directory = Path(os.getenv("IOTAUTH_ENTITY_DIR", str(
                 Path(__file__).resolve().parents[3] / "iotauth/entity/node/example_entities")))
-            config = os.getenv("IOTAUTH_ROBOT_CONFIG", "configs/net1/robotAgent.config")
-            target = os.getenv("IOTAUTH_ROBOT_RESOURCE", "net1.resource")
+            config = os.getenv("IOTAUTH_FORKLIFT_CONFIG", "configs/net1/forkliftAgent.config")
+            target = os.getenv("IOTAUTH_FORKLIFT_RESOURCE", "net1.resource")
             if not re.fullmatch(r"[A-Za-z0-9_.-]+", target):
-                return {"status": "error", "error": "Invalid IOTAUTH_ROBOT_RESOURCE."}
+                return {"status": "error", "error": "Invalid IOTAUTH_FORKLIFT_RESOURCE."}
             if not (directory / config).is_file():
-                return {"status": "error", "error": f"Robot config not found: {directory / config}"}
+                return {"status": "error", "error": f"Forklift config not found: {directory / config}"}
             ready = asyncio.get_running_loop().create_future()
             sent = False
 

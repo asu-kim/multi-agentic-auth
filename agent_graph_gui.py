@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Build IoTAuth graphs using a Tk GUI or the reusable build_graph API."""
 import json
+import os
+import tempfile
 import re
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 CONFIG_DIR = Path(__file__).resolve().parent / "iotauth" / "examples" / "configs"
+ENV_FILE = Path(__file__).resolve().parent / "a2a-multi-agent" / ".env"
 CRYPTO = "AES-128-CBC:SHA256"
 
 
@@ -41,7 +45,7 @@ def host_name(value):
 
 
 def build_graph(entities, rules, network="net1", auth_host="localhost", auth_id=101):
-    """Entities: name, group, kind (Agent/Resource), host, port.
+    """Entities: name, group, kind (Agent/Resource), host, port, optional agent url.
 
     Rules: type (DelegationGrant/DelegationRevoke/DirectAccess), actor,
     subject, target (group names), validity. Grants imply matching revoke rights;
@@ -83,6 +87,11 @@ def build_graph(entities, rules, network="net1", auth_host="localhost", auth_id=
                       sessionCryptoSpec=dict(cipher="AES-128-CBC", mac="SHA256"), backupToAuthIds=[])
         if row["kind"] == "Resource":
             resources.add(group)
+            description = row.get("description", "").strip()
+            if len(description) > 4000:
+                raise ValueError("Resource descriptions must be at most 4000 characters.")
+            if description:
+                entity["description"] = description
             entity.update(host=host_name(row["host"].strip()), port=port_number(row["port"]),
                           maxSessionKeysPerRequest=1)
             endpoint = (entity["host"].lower(), entity["port"])
@@ -91,6 +100,20 @@ def build_graph(entities, rules, network="net1", auth_host="localhost", auth_id=
             endpoints.add(endpoint)
         else:
             agents.add(group)
+            url = row.get("url", "").strip()
+            if url:
+                try:
+                    parsed = urlsplit(url)
+                    port = parsed.port
+                    valid = (parsed.scheme in ("http", "https") and parsed.hostname
+                             and not parsed.username and not parsed.password
+                             and not parsed.query and not parsed.fragment
+                             and not any(c.isspace() for c in url)
+                             and (port is None or 1 <= port <= 65535))
+                except ValueError:
+                    valid = False
+                if not valid:
+                    raise ValueError("Agent URL must be an HTTP(S) endpoint without credentials, query parameters, or fragments.")
             entity.update(targetServerInfoList=[], contextList=[])
         graph["assignments"][name] = auth_id
         graph["entityList"].append(entity)
@@ -143,6 +166,100 @@ def build_graph(entities, rules, network="net1", auth_host="localhost", auth_id=
             entity["targetServerInfoList"] = [dict(name=e["name"], group=e["group"], host=e["host"], port=e["port"])
                 for e in graph["entityList"] if "host" in e and e["group"] in targets[entity["group"]]]
     return graph
+
+
+
+def prepare_agent_env(entities, path=ENV_FILE):
+    """Merge entered agent endpoints into dotenv without storing them in the graph."""
+    updates, groups = {}, {}
+    for row in entities:
+        if row["kind"] != "Agent" or not row.get("url", "").strip():
+            continue
+        name = identifier(row["name"])
+        if name.endswith("Agent"):
+            name = name[:-5]
+        role = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", name).upper()
+        key = role + "_URL"
+        url = row["url"].strip()
+        # Validation is also performed by build_graph before GUI saves.
+        parsed = urlsplit(url)
+        if (parsed.scheme not in ("http", "https") or not parsed.hostname
+                or parsed.username or parsed.password or parsed.query or parsed.fragment
+                or any(c.isspace() or c in "\\\"'$`" for c in url)
+                or (parsed.port is not None and not 1 <= parsed.port <= 65535)):
+            raise ValueError("Agent URL must be a plain HTTP(S) endpoint without credentials or query parameters.")
+        group = row["group"].strip()
+        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", group):
+            raise ValueError("Invalid agent group for environment configuration.")
+        if key in updates or url.rstrip("/") in {u.rstrip("/") for u in groups}:
+            raise ValueError("Agents must have distinct URL variable names and endpoints.")
+        updates[key] = url
+        groups[url] = group
+    if not updates:
+        return None
+    path = Path(path)
+    if path.is_symlink():
+        raise ValueError("Refusing to overwrite an environment-file symbolic link.")
+    source = path if path.exists() else path.with_name(".env.example")
+    text = source.read_text(encoding="utf-8") if source.exists() else ""
+    lines = text.splitlines(keepends=True)
+    pattern = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)(?:\r?\n)?$")
+    existing = {}
+    def value(raw):
+        raw = raw.strip()
+        if raw.startswith(("'", '"')):
+            end = raw.rfind(raw[0])
+            if end <= 0:
+                raise ValueError("Malformed quoted environment setting.")
+            return raw[1:end]
+        return raw.split(" #", 1)[0].strip()
+    for line in lines:
+        match = pattern.match(line)
+        if match and match[1] in {*updates, "IOTAUTH_AGENT_GROUPS"}:
+            existing[match[1]] = value(match[2])
+    try:
+        mapping = json.loads(existing.get("IOTAUTH_AGENT_GROUPS", "{}"))
+    except ValueError as exc:
+        raise ValueError("Existing IOTAUTH_AGENT_GROUPS must contain valid JSON.") from exc
+    if not isinstance(mapping, dict) or any(not isinstance(k, str) or not isinstance(v, str) for k, v in mapping.items()):
+        raise ValueError("Existing IOTAUTH_AGENT_GROUPS must map URLs to group names.")
+    old_urls = {existing[k].rstrip("/") for k in updates if k in existing}
+    new_urls = {u.rstrip("/") for u in groups}
+    mapping = {u: group for u, group in mapping.items() if u.rstrip("/") not in old_urls | new_urls}
+    mapping.update(groups)
+    updates["IOTAUTH_AGENT_GROUPS"] = "'" + json.dumps(mapping, separators=(",", ":")) + "'"
+    output, written = [], set()
+    for line in lines:
+        match = pattern.match(line)
+        if match and match[1] in updates:
+            key = match[1]
+            if key not in written:
+                output.append(key + "=" + updates[key] + "\n")
+                written.add(key)
+        else:
+            output.append(line)
+    if output and not output[-1].endswith("\n"):
+        output[-1] += "\n"
+    output.extend(key + "=" + val + "\n" for key, val in updates.items() if key not in written)
+    return "".join(output)
+
+
+def save_agent_env(content, path=ENV_FILE):
+    if content is None:
+        return
+    path = Path(path)
+    if path.is_symlink():
+        raise ValueError("Refusing to overwrite an environment-file symbolic link.")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write(content)
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None and temporary.exists():
+            temporary.unlink()
 
 
 def save_graph(graph, filename, directory=CONFIG_DIR, overwrite=False):
@@ -280,7 +397,7 @@ def main():
             self.generation_process = None
             self.auth_process = None
             root.title("IoTAuth Agent Graph Builder")
-            root.geometry("1050x760")
+            root.geometry("1050x800")
             root.bind("<Escape>", lambda event: root.attributes("-fullscreen", False))
             root.bind("<F11>", lambda event: root.attributes(
                 "-fullscreen", not bool(root.attributes("-fullscreen"))))
@@ -307,9 +424,43 @@ def main():
             ttk.Label(entity_tab, text="Names such as Manager Agent become net1.managerAgent. Shared groups share privileges.").pack(anchor="w")
             form = ttk.Frame(entity_tab)
             form.pack(fill="x", pady=12)
-            self.entity_fields = self.fields(form, [("Name", ""), ("Group", ""), ("Kind", ("Agent", "Resource")), ("Host", "localhost"), ("Port", "21100")])
-            ttk.Label(entity_tab, text="Host and port apply to resources only. Add human users as Agent entities.").pack(anchor="w")
-            self.entity_tree = self.table(entity_tab, ("name", "group", "kind", "host", "port"))
+            self.entity_fields = {}
+            form.columnconfigure(3, weight=1)
+            for column, (key, label, width) in enumerate([
+                    ("Kind", "Kind", 10), ("Name", "Name", 18),
+                    ("Group", "Group", 18), ("URL", "Agent URL", 34)]):
+                field_label = ttk.Label(form, text=label)
+                field_label.grid(row=0, column=column, sticky="w", padx=4)
+                if key == "Kind":
+                    entry = ttk.Combobox(form, values=("Agent", "Resource"), state="readonly", width=width)
+                    entry.set("Agent")
+                else:
+                    entry = ttk.Entry(form, width=width)
+                entry.grid(row=1, column=column, sticky="ew", padx=4)
+                self.entity_fields[key] = entry
+                if key == "URL":
+                    self.agent_url_label = field_label
+            ttk.Label(entity_tab, text="Add human users as Agent entities.").pack(anchor="w")
+            resource_holder = ttk.Frame(entity_tab)
+            resource_holder.pack(fill="x")
+            resource_holder.columnconfigure(0, weight=1)
+            self.resource_fields_frame = ttk.Frame(resource_holder)
+            self.resource_fields_frame.grid(row=0, column=0, sticky="ew")
+            endpoint_row = ttk.Frame(self.resource_fields_frame)
+            endpoint_row.pack(fill="x", pady=(8, 0))
+            endpoint_row.columnconfigure(2, weight=1)
+            for column, (key, label, value, width) in enumerate([
+                    ("Host", "Host", "localhost", 24),
+                    ("Port", "Port", "21100", 8),
+                    ("Description", "Description (optional)", "", 40)]):
+                ttk.Label(endpoint_row, text=label).grid(row=0, column=column, sticky="w", padx=4)
+                entry = ttk.Entry(endpoint_row, width=width)
+                entry.insert(0, value)
+                entry.grid(row=1, column=column, sticky="ew", padx=4)
+                self.entity_fields[key] = entry
+            self.entity_fields["Kind"].bind("<<ComboboxSelected>>", self.update_entity_fields)
+            self.update_entity_fields()
+            self.entity_tree = self.table(entity_tab, ("kind", "name", "group", "url", "host", "port"))
             self.buttons(entity_tab, [("Add entity", self.add_entity), ("Remove selected", self.remove_entity)])
             ttk.Label(rule_tab, text="Grant/revoke: actor controls recipient access to a resource. Direct access: actor can access the resource.", wraplength=900).pack(anchor="w")
             form = ttk.Frame(rule_tab)
@@ -334,6 +485,16 @@ def main():
             ttk.Label(footer, textvariable=self.status, wraplength=980).pack(anchor="w", pady=(8, 0))
             tabs.bind("<<NotebookTabChanged>>", lambda e: self.refresh_preview() if tabs.index(tabs.select()) == 2 else None)
 
+        def update_entity_fields(self, event=None):
+            if self.entity_fields["Kind"].get() == "Resource":
+                self.resource_fields_frame.grid()
+                self.agent_url_label.grid_remove()
+                self.entity_fields["URL"].grid_remove()
+            else:
+                self.resource_fields_frame.grid_remove()
+                self.agent_url_label.grid()
+                self.entity_fields["URL"].grid()
+
         def fields(self, frame, specs):
             result = {}
             for col, (label, value) in enumerate(specs):
@@ -354,7 +515,7 @@ def main():
             frame.pack(fill="both", expand=True, pady=12)
             tree = ttk.Treeview(frame, columns=columns, show="headings", selectmode="browse")
             for col in columns:
-                tree.heading(col, text=col.title())
+                tree.heading(col, text="Agent URL" if col == "url" else col.title())
                 tree.column(col, width=150, minwidth=80)
             scroll = ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
             tree.configure(yscrollcommand=scroll.set)
@@ -383,7 +544,7 @@ def main():
             for tree, rows in ((self.entity_tree, self.entities), (self.rule_tree, self.rules)):
                 tree.delete(*tree.get_children())
                 for i, row in enumerate(rows):
-                    tree.insert("", "end", iid=str(i), values=[row[k] for k in tree["columns"]])
+                    tree.insert("", "end", iid=str(i), values=[row.get(k, "") for k in tree["columns"]])
             for field, kind in (("Delegator", "Agent"), ("Delegatee", "Agent"), ("Resource", "Resource")):
                 values = sorted({r["group"] for r in self.entities if r["kind"] == kind})
                 widget = self.rule_fields[field]
@@ -393,6 +554,10 @@ def main():
 
         def add_entity(self):
             row = {k.lower(): v.get().strip() for k, v in self.entity_fields.items()}
+            if row["kind"] == "Agent":
+                row.update(host="", port="", description="")
+            else:
+                row["url"] = ""
             if not row["group"]:
                 name = identifier(row["name"])
                 row["group"] = name[0].upper() + name[1:] + "s"
@@ -400,7 +565,9 @@ def main():
             self.entities.append(row)
             self.redraw()
             self.entity_fields["Name"].delete(0, "end")
+            self.entity_fields["URL"].delete(0, "end")
             self.entity_fields["Group"].delete(0, "end")
+            self.entity_fields["Description"].delete(0, "end")
 
         def remove_entity(self):
             selected = self.entity_tree.selection()
@@ -437,6 +604,7 @@ def main():
 
         def save(self, notify=True):
             graph = self.graph()
+            env_content = prepare_agent_env(self.entities)
             filename = self.settings["Filename"].get().strip()
             if not filename.endswith(".graph"):
                 filename += ".graph"
@@ -446,10 +614,14 @@ def main():
                 if not messagebox.askyesno("Replace graph?", "Replace existing file " + filename + "?", parent=self.root):
                     return
                 path = save_graph(graph, filename, overwrite=True)
-            self.status.set("Saved: " + str(path))
+            save_agent_env(env_content)
+            saved_message = str(path)
+            if env_content is not None:
+                saved_message += "\nAgent URLs updated in " + str(ENV_FILE)
+            self.status.set("Saved: " + saved_message)
             self.refresh_preview()
             if notify:
-                messagebox.showinfo("Graph saved", str(path), parent=self.root)
+                messagebox.showinfo("Configuration saved", saved_message, parent=self.root)
             return path
 
         def generate(self):

@@ -19,7 +19,7 @@
     {
       "description": "Select one agent whose card matches all requested capabilities and constraints. Selection does not confirm availability or execute work.",
       "examples": [
-        "Find a robot that can pick up a box and move it to station B."
+        "Find a forklift that can pick up a box and move it to station B."
       ],
       "id": "agent_discovery",
       "name": "Agent discovery and selection",

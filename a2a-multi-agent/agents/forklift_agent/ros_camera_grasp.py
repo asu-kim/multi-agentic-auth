@@ -1,4 +1,4 @@
-"""One-shot ROS2 camera grasp. Run with the robot's ROS Python, not the agent venv."""
+"""One-shot ROS2 camera grasp. Run with the forklift's ROS Python, not the agent venv."""
 import argparse
 import json
 import math
@@ -21,7 +21,7 @@ def run(config, preview=False):
     from box_vision import detect_box, stable, target_in_base
 
     rclpy.init()
-    node = Node('robot_agent_camera_grasp')
+    node = Node('forklift_agent_camera_grasp')
     bridge = CvBridge()
     pair = [None]
     def frames(rgb, depth):
@@ -67,7 +67,7 @@ def run(config, preview=False):
             # Persistent interlock: prevents reopening a potentially loaded gripper after restart.
             lock = Path(config['attempt_lock']).expanduser()
             with lock.open('x') as file:
-                file.write('Inspect/reset the robot before manually removing this grasp interlock.\n')
+                file.write('Inspect/reset the forklift before manually removing this grasp interlock.\n')
             print('GRASP_MOTION_STARTED',flush=True)
             view = list(config['view_joints'])
             view[0] = 180-view[0]  # ShapeRecognizeNode.pubSixArm convention

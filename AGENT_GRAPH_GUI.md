@@ -12,9 +12,9 @@ Requires Python 3.9+ with Tkinter and a desktop session. There are no pip depend
 If your interpreter reports missing `_tkinter`, follow the [Tkinter troubleshooting steps](#troubleshooting-tkinter-is-required) below.
 
 1. Set the network, Auth host, Auth ID, and output filename. Defaults are `net1`, `localhost`, `101`, and `my_agents.graph`.
-2. Add agents (including human users) and resources. For example, enter `Manager Agent`, `robot agent`, and `Resource`. Names become `net1.managerAgent`, `net1.robotAgent`, and `net1.resource`. Leave Group blank to derive `ManagerAgents`, `RobotAgents`, or `Resources`, or enter your own group. Resources need a host and port; agent host/port fields are ignored.
+2. Add agents (including human users) and resources. For example, enter `Manager Agent`, `forklift agent`, and `Resource`. Names become `net1.managerAgent`, `net1.forkliftAgent`, and `net1.resource`. Leave Group blank to derive `ManagerAgents`, `ForkliftAgents`, or `Resources`, or enter your own group. Resources need a host and port; agent host/port fields are ignored.
 3. Add rules using the group selectors:
-   - `DelegationGrant`: Actor `ManagerAgents`, Recipient `RobotAgents`, Resource `Resources` allows the manager group to grant access to the robot group. It also generates a matching `DelegationRevoke` for that same actor, recipient, and resource.
+   - `DelegationGrant`: Actor `ManagerAgents`, Recipient `ForkliftAgents`, Resource `Resources` allows the manager group to grant access to the forklift group. It also generates a matching `DelegationRevoke` for that same actor, recipient, and resource.
    - `DelegationRevoke`: select the group allowed to revoke, the recipient, and the resource. Validity is ignored.
    - `DirectAccess`: select the actor and resource to create an ordinary communication policy. Recipient is ignored.
 4. Review the generated JSON in Graph preview, then click Save graph. Files are always written to `iotauth/examples/configs`, regardless of the current working directory. Existing files require overwrite confirmation.
@@ -135,3 +135,21 @@ The Java command runs only if `make` succeeds and the built JAR exists. Generate
 When Java displays `Please enter Auth password:` in the terminal where you launched the GUI, enter the password used to generate the credentials. The server reads it with hidden input. The GUI does not store this password or pass it in command arguments. The credential password field belongs to generation; server startup requests the password separately when Java needs it.
 
 Build/server output and interactive commands stay in the launch terminal. The GUI remains responsive and reports build or server failures. While building or running, duplicate launches and cleanup/generation are disabled. Enter `quit` in the terminal to stop Auth; the buttons become available when the process exits. An active-process status is not a readiness check—check the server output for successful initialization or a password error. Keep the GUI open during the build so it can start Java afterward; closing it does not stop an already running server.
+
+
+## Let the manager select resources
+
+When adding a Resource entity, use the optional **Resource description** field to explain its purpose, location, and what access enables (for example, “Warehouse entrance door used to reach the middle-shelf storage area”). This text is saved as entity metadata in the graph. Use descriptions of resources, not instructions for the manager.
+
+In `a2a-multi-agent/.env`, set `IOTAUTH_GRAPH_FILE=../iotauth/examples/configs/my_agents.graph` (replace the filename with the one you saved) and `IOTAUTH_MANAGER_ENTITY=net1.managerAgent`. The manager reads resource groups, entity names/descriptions, parent access policies, and delegation grant privileges from this file. Save changes before sending a new task; each task uses its own catalog snapshot. Provision Auth from the same graph so the catalog matches the deployed policies.
+
+Users may omit `--resource`: the manager selects a matching resource through its tools or asks if ambiguous. If `--validity` is omitted too, the matching graph grant validity supplies the duration. Explicit choices are preserved. Selection remains at resource-group granularity, and this version supports one resource group per task.
+
+
+## Agent URLs
+
+The entity form shows **Kind**, **Name**, **Group**, and **Agent URL** in one row. Kind, Name, and Group are compact; the URL field uses the remaining space. Agent URL appears only for Agent entities. Use an HTTP(S) endpoint such as `http://127.0.0.1:10003/`; leave it blank for entities without an A2A service, such as human users.
+
+URLs are displayed in the entity list but are **not stored in the graph**. Saving updates `a2a-multi-agent/.env`: Manager Agent maps to `MANAGER_URL`, Drone Agent to `DRONE_URL`, Rover Agent to `ROVER_URL`, and Forklift Agent to `FORKLIFT_URL`. Other names use an uppercase underscore-separated variable name with `_URL`. `IOTAUTH_AGENT_GROUPS` maps the entered URLs to their GUI groups. Old endpoint mappings for updated agents are replaced; unrelated settings and agents are preserved. If `.env` is missing, it is initialized from `.env.example`. Blank agent URLs leave existing settings unchanged.
+
+Restart the agents/manager after saving to reload `.env`. If you set an explicit `AGENT_URLS` roster, update it separately to match; the GUI does not overwrite that roster or start agents.

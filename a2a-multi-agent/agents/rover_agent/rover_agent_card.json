@@ -1,0 +1,44 @@
+{
+  "capabilities": {
+    "pushNotifications": false,
+    "streaming": false
+  },
+  "defaultInputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "description": "Warehouse rover agent modeled on Section 2.3: reaches the bottom shelf and carries light items. Limits: Cannot carry heavy items or reach the middle shelf. Ground-level and bottom-shelf retrieval only; cannot reach elevated shelves. Execution is simulated planning only; no hardware interface is connected. Capability does not grant access: protected resources require a valid, unrevoked permission for the authorized task interval.",
+  "name": "Rover Agent",
+  "preferredTransport": "JSONRPC",
+  "protocolVersion": "0.3.0",
+  "skills": [
+    {
+      "id": "reach_bottom_shelf",
+      "name": "Reach bottom shelf",
+      "description": "Model the physical capability to reach the bottom shelf; return a simulated retrieval plan, not hardware execution.",
+      "tags": [
+        "reach_bottom_shelf"
+      ],
+      "examples": [
+        "Plan retrieving a light item from the bottom shelf."
+      ]
+    },
+    {
+      "id": "carry_light_items",
+      "name": "Carry light items",
+      "description": "Model transport of light items within the agent's shelf-reach limits. Heavy loads are unsupported; unspecified load classifications require clarification.",
+      "tags": [
+        "carry_light_items"
+      ],
+      "examples": [
+        "Plan carrying a light item retrieved from the bottom shelf."
+      ]
+    }
+  ],
+  "url": "http://127.0.0.1:10002/",
+  "version": "0.1.0"
+}

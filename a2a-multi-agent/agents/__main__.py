@@ -7,7 +7,7 @@ from agents.common.server_runtime import run_server
 
 def main():
     parser = argparse.ArgumentParser(description="Run one agent's A2A server")
-    parser.add_argument("role", choices=["manager", "language", "analytics", "robot"])
+    parser.add_argument("role", choices=["manager", "drone", "rover", "forklift"])
     parser.add_argument("--host", default="127.0.0.1")
     args = parser.parse_args()
     module = import_module(f"agents.{args.role}_agent.__main__")

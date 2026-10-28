@@ -9,9 +9,9 @@ from agent_graph_gui import build_graph, save_graph
 class GraphTests(unittest.TestCase):
     def setUp(self):
         self.entities = [dict(name="Manager Agent", group="ManagerAgents", kind="Agent"),
-                         dict(name="robot agent", group="RobotAgents", kind="Agent"),
+                         dict(name="forklift agent", group="ForkliftAgents", kind="Agent"),
                          dict(name="Resource", group="Resources", kind="Resource", host="localhost", port="21101")]
-        self.grant = dict(type="DelegationGrant", actor="ManagerAgents", subject="RobotAgents", target="Resources", validity="1*day")
+        self.grant = dict(type="DelegationGrant", actor="ManagerAgents", subject="ForkliftAgents", target="Resources", validity="1*day")
 
     def test_delegation_generates_revoke_and_actor_access(self):
         graph = build_graph(self.entities, [self.grant])
@@ -20,7 +20,7 @@ class GraphTests(unittest.TestCase):
             SessionCryptoSpec="AES-128-CBC:SHA256", AbsoluteValidity="1*day",
             RelativeValidity="6*hour", Expiration="Infinity", IsDelegated=0, Context=None)])
         self.assertEqual(graph["privilegeList"][1], dict(privilegeType="DelegationRevoke",
-            privilegedGroup="ManagerAgents", subject="RobotAgents", object="Resources"))
+            privilegedGroup="ManagerAgents", subject="ForkliftAgents", object="Resources"))
         self.assertEqual(graph["entityList"][0]["targetServerInfoList"][0]["port"], 21101)
         self.assertEqual(graph["privilegeList"][0]["privilegedGroup"], "ManagerAgents")
         self.assertEqual(graph["entityList"][1]["targetServerInfoList"][0]["port"], 21101)
@@ -65,6 +65,29 @@ class GraphTests(unittest.TestCase):
         self.assertEqual(graph["commPolicies"], [])
         self.assertEqual(graph["entityList"][0]["targetServerInfoList"], [])
 
+    def test_resource_description_saved_for_manager_catalog(self):
+        entities = [dict(row) for row in self.entities]
+        entities[-1]["description"] = "Access-controlled warehouse entrance."
+        graph = build_graph(entities, [self.grant])
+        self.assertEqual(graph["entityList"][-1]["description"], entities[-1]["description"])
+        entities[-1]["description"] = "x" * 4001
+        with self.assertRaises(ValueError):
+            build_graph(entities, [self.grant])
+
+    def test_agent_url_excluded_from_graph(self):
+        entities = [dict(row) for row in self.entities]
+        entities[0]["url"] = "https://manager.example:8443/a2a/"
+        entities[-1]["url"] = "https://ignored.example/"
+        graph = build_graph(entities, [])
+        self.assertNotIn("url", graph["entityList"][0])
+        self.assertNotIn("url", graph["entityList"][1])
+        self.assertNotIn("url", graph["entityList"][-1])
+        for url in ("localhost:10000", "ftp://example.com", "https://host:70000/",
+                    "http://host:0/", "https://user:secret@host/", "http://some host/", "https://host/#fragment"):
+            entities[0]["url"] = url
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                build_graph(entities, [])
+
     def test_invalid_rules(self):
         for changes in (dict(subject="Missing"), dict(actor="Missing"), dict(target="Missing"), dict(validity="forever")):
             with self.subTest(changes=changes), self.assertRaises(ValueError):
@@ -94,6 +117,45 @@ class GraphTests(unittest.TestCase):
             link.symlink_to(path)
             with self.assertRaises(ValueError):
                 save_graph(graph, link.name, directory, overwrite=True)
+
+
+class AgentEnvironmentTests(unittest.TestCase):
+    def test_preserves_settings_and_updates_endpoints(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / ".env"
+            path.write_text("# Keep this comment\nAPI_KEY=keep-value\nMANAGER_URL=http://old:10000/\n"
+                            "DRONE_URL=http://other:10001/\n"
+                            "IOTAUTH_AGENT_GROUPS='{\"http://old:10000/\":\"Managers\",\"http://other:10001/\":\"DroneAgents\"}'\n")
+            rows = [dict(kind="Agent", name="Manager Agent", group="ManagerAgents", url="http://new:10000/")]
+            content = agent_graph_gui.prepare_agent_env(rows, path)
+            agent_graph_gui.save_agent_env(content, path)
+            result = path.read_text()
+            self.assertIn("API_KEY=keep-value", result)
+            self.assertIn("# Keep this comment", result)
+            self.assertIn("DRONE_URL=http://other:10001/", result)
+            self.assertIn("MANAGER_URL=http://new:10000/", result)
+            self.assertNotIn("http://old:10000/", result)
+            self.assertIn('"http://new:10000/":"ManagerAgents"', result)
+            self.assertIn('"http://other:10001/":"DroneAgents"', result)
+
+    def test_new_env_from_template_and_no_urls_no_change(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / ".env"
+            path.with_name(".env.example").write_text("MANAGER_MODEL=example\n")
+            rows = [dict(kind="Agent", name="Forklift Agent", group="ForkliftAgents", url="http://localhost:10003/")]
+            content = agent_graph_gui.prepare_agent_env(rows, path)
+            self.assertIn("FORKLIFT_URL=http://localhost:10003/", content)
+            self.assertIn("MANAGER_MODEL=example", content)
+            self.assertIsNone(agent_graph_gui.prepare_agent_env([], path))
+            self.assertFalse(path.exists())
+
+    def test_bad_existing_mapping_not_overwritten(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / ".env"
+            path.write_text("IOTAUTH_AGENT_GROUPS=bad-json\n")
+            with self.assertRaises(ValueError):
+                agent_graph_gui.prepare_agent_env([dict(kind="Agent", name="Drone Agent", group="DroneAgents", url="http://localhost:10001/")], path)
+            self.assertEqual(path.read_text(), "IOTAUTH_AGENT_GROUPS=bad-json\n")
 
 
 class GenerationTests(unittest.TestCase):

@@ -1,0 +1,44 @@
+{
+  "capabilities": {
+    "pushNotifications": false,
+    "streaming": false
+  },
+  "defaultInputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "description": "Warehouse drone agent modeled on Section 2.3: reaches the top shelf and carries light items. Limits: Cannot carry heavy items or reach the middle shelf. Top-shelf retrieval only. Execution is simulated planning only; no hardware interface is connected. Capability does not grant access: protected resources require a valid, unrevoked permission for the authorized task interval.",
+  "name": "Drone Agent",
+  "preferredTransport": "JSONRPC",
+  "protocolVersion": "0.3.0",
+  "skills": [
+    {
+      "id": "reach_top_shelf",
+      "name": "Reach top shelf",
+      "description": "Model the physical capability to reach the top shelf; return a simulated retrieval plan, not hardware execution.",
+      "tags": [
+        "reach_top_shelf"
+      ],
+      "examples": [
+        "Plan retrieving a light item from the top shelf."
+      ]
+    },
+    {
+      "id": "carry_light_items",
+      "name": "Carry light items",
+      "description": "Model transport of light items within the agent's shelf-reach limits. Heavy loads are unsupported; unspecified load classifications require clarification.",
+      "tags": [
+        "carry_light_items"
+      ],
+      "examples": [
+        "Plan carrying a light item retrieved from the top shelf."
+      ]
+    }
+  ],
+  "url": "http://127.0.0.1:10001/",
+  "version": "0.1.0"
+}

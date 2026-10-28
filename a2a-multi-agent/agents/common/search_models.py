@@ -7,10 +7,21 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class DelegationScope(StrictModel):
+    resource: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.-]+$")
+    validity: str = Field(max_length=32, pattern=r"^[1-9][0-9]{0,8}\*(sec|min|hour|day)$")
+
+
+class DelegationPreferences(StrictModel):
+    resource: str | None = Field(default=None, min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.-]+$")
+    validity: str | None = Field(default=None, max_length=32, pattern=r"^[1-9][0-9]{0,8}\*(sec|min|hour|day)$")
+
+
 class SearchRequest(StrictModel):
     query: str = Field(min_length=1, max_length=8000)
     # An empty list means the manager LLM interprets the natural-language query.
     required_capabilities: list[str] = Field(default_factory=list)
+    delegation: DelegationScope | DelegationPreferences | None = None
 
 
 class SelectedAgent(StrictModel):
@@ -34,6 +45,9 @@ class SearchResult(StrictModel):
     required_capabilities: list[str]
     selected_agent: SelectedAgent | None = None
     task_result: dict | None = None
+    revocation_result: dict | None = None
+    resolved_delegation: DelegationScope | None = None
+    resource_selection_reason: str | None = None
     summary: str
     discovered_agents: list[dict] = Field(default_factory=list)
     attempts: list[Attempt] = Field(default_factory=list)

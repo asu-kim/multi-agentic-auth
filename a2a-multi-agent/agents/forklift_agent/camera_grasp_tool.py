@@ -3,7 +3,7 @@ import asyncio
 import json
 import os
 from pathlib import Path
-from agents.robot_agent.grasp_config import validate
+from agents.forklift_agent.grasp_config import validate
 
 
 class CameraGraspTool:
@@ -17,15 +17,15 @@ class CameraGraspTool:
             return {'status':'error','output':'A camera grasp is already in progress.'}
         async with self.lock:
             if self.attempted:
-                return {'status':'error','output':'A grasp was already attempted. Inspect/reset the robot before another attempt.'}
-            if os.getenv('ROBOT_GRASP_ENABLED','false').lower()!='true':
-                return {'status':'error','output':'Camera grasp disabled. Verify ROBOT_GRASP_CONFIG calibration before enabling ROBOT_GRASP_ENABLED.'}
+                return {'status':'error','output':'A grasp was already attempted. Inspect/reset the forklift before another attempt.'}
+            if os.getenv('FORKLIFT_GRASP_ENABLED','false').lower()!='true':
+                return {'status':'error','output':'Camera grasp disabled. Verify FORKLIFT_GRASP_CONFIG calibration before enabling FORKLIFT_GRASP_ENABLED.'}
             try:
-                path=Path(os.environ['ROBOT_GRASP_CONFIG']).expanduser().resolve()
+                path=Path(os.environ['FORKLIFT_GRASP_CONFIG']).expanduser().resolve()
                 validate(json.loads(path.read_text()))
                 async with asyncio.timeout(75):
                     self.process=await asyncio.create_subprocess_exec(
-                        os.getenv('ROBOT_ROS_PYTHON','/usr/bin/python3'),
+                        os.getenv('FORKLIFT_ROS_PYTHON','/usr/bin/python3'),
                         str(Path(__file__).with_name('ros_camera_grasp.py')),'--config',str(path),
                         stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.STDOUT)
                     self.attempted=True
@@ -46,7 +46,7 @@ class CameraGraspTool:
                     return result
             except (KeyError,TypeError,OSError,ValueError,TimeoutError) as exc:
                 return {'status':'error','output':(str(exc) or 'Camera grasp timed out.')+
-                        (' Motion may have started; inspect the robot before retrying.' if self.attempted else '')}
+                        (' Motion may have started; inspect the forklift before retrying.' if self.attempted else '')}
             finally:
                 await self.close()
 
