@@ -462,14 +462,39 @@ def main():
             self.update_entity_fields()
             self.entity_tree = self.table(entity_tab, ("kind", "name", "group", "url", "host", "port"))
             self.buttons(entity_tab, [("Add entity", self.add_entity), ("Remove selected", self.remove_entity)])
-            ttk.Label(rule_tab, text="Grant/revoke: actor controls recipient access to a resource. Direct access: actor can access the resource.", wraplength=900).pack(anchor="w")
+            ttk.Label(rule_tab, text="Grant/revoke: delegator controls delegatee's access to a resource. Direct access: delegator can access the resource.", wraplength=900).pack(anchor="w")
             form = ttk.Frame(rule_tab)
             form.pack(fill="x", pady=12)
             self.rule_fields = self.fields(form, [("Type", ("DelegationGrant", "DelegationRevoke", "DirectAccess")), ("Delegator", ()), ("Delegatee", ()), ("Resource", ()), ("Validity", "1*day")])
-            ttk.Label(rule_tab, text="Grant adds matching revoke rights. Grant/revoke adds actor access (1*day / 6*hour). See Graph preview.").pack(anchor="w")
+            ttk.Label(rule_tab, text="Grant adds matching revoke rights. Grant/revoke adds delegator's access. See Graph preview.").pack(anchor="w")
             self.rule_tree = self.table(rule_tab, ("type", "actor", "subject", "target", "validity"))
             self.buttons(rule_tab, [("Add rule", self.add_rule), ("Remove selected", self.remove_rule)])
-            self.preview = ScrolledText(preview_tab, wrap="none", font=("TkFixedFont", 11))
+            panes = ttk.Panedwindow(preview_tab, orient="horizontal")
+            panes.pack(fill="both", expand=True)
+            json_panel = ttk.LabelFrame(panes, text="Graph JSON")
+            diagrams = ttk.Panedwindow(panes, orient="vertical")
+            panes.add(json_panel, weight=1)
+            panes.add(diagrams, weight=1)
+            self.preview_graph = None
+
+            def diagram_canvas(title, redraw):
+                panel = ttk.LabelFrame(diagrams, text=title)
+                diagrams.add(panel, weight=1)
+                canvas = tk.Canvas(panel, width=450, height=180, background="white", highlightthickness=0)
+                horizontal = ttk.Scrollbar(panel, orient="horizontal", command=canvas.xview)
+                vertical = ttk.Scrollbar(panel, orient="vertical", command=canvas.yview)
+                canvas.configure(xscrollcommand=horizontal.set, yscrollcommand=vertical.set)
+                panel.columnconfigure(0, weight=1)
+                panel.rowconfigure(0, weight=1)
+                canvas.grid(row=0, column=0, sticky="nsew")
+                horizontal.grid(row=1, column=0, sticky="ew")
+                vertical.grid(row=0, column=1, sticky="ns")
+                canvas.bind("<Configure>", redraw)
+                return canvas
+
+            self.diagram = diagram_canvas("Auth assignments", self.draw_assignments)
+            self.delegation_diagram = diagram_canvas("Delegation privileges", self.draw_delegations)
+            self.preview = ScrolledText(json_panel, width=44, wrap="none", font=("TkFixedFont", 11))
             self.preview.pack(fill="both", expand=True)
             self.preview.configure(state="disabled")
             self.buttons(preview_tab, [("Refresh preview", self.refresh_preview)])
@@ -592,11 +617,98 @@ def main():
                 del self.rules[int(selected[0])]
                 self.redraw()
 
+        def draw_assignments(self, event=None):
+            canvas = self.diagram
+            canvas.delete("all")
+            graph = self.preview_graph
+            if graph is None:
+                canvas.configure(scrollregion=(0, 0, 0, 0))
+                return
+            agents = [e for e in graph["entityList"] if "host" not in e]
+            resources = [e for e in graph["entityList"] if "host" in e]
+            # Measure labels before positioning the two columns so long names stay readable.
+            columns = []
+            for kind, entities in (("Agent", agents), ("Resource", resources)):
+                labels = []
+                for entity in entities:
+                    tag = f"assignment_{len(columns)}_{len(labels)}"
+                    canvas.create_text(0, 0, anchor="s", tags=tag, text=kind,
+                                       font=("TkDefaultFont", 10, "bold"), fill="#172d40")
+                    canvas.create_text(0, 0, anchor="n", tags=tag, text=entity["name"], fill="#172d40")
+                    labels.append(tag)
+                columns.append(labels)
+            auth = graph["authList"][0]
+            hub = canvas.create_text(0, 0, text=f"Auth{auth['id']}", fill="white")
+            hub_width = canvas.bbox(hub)[2] - canvas.bbox(hub)[0] + 24
+            side_width = max((canvas.bbox(i)[2] - canvas.bbox(i)[0] + 16
+                              for labels in columns for i in labels), default=0)
+            width = max(canvas.winfo_width(), 2 * side_width + hub_width + 76)
+            height = max(canvas.winfo_height(), 60 * max(map(len, columns)) + 24)
+            cx, cy = width / 2, height / 2
+            canvas.coords(hub, cx, cy)
+            for labels, x, color in zip(columns, (12 + side_width / 2, width - 12 - side_width / 2),
+                                        ("#d9ebfb", "#d9f1df")):
+                for index, label in enumerate(labels):
+                    y = cy + (index - (len(labels) - 1) / 2) * 60
+                    canvas.move(label, x, y)
+                    left, top, right, bottom = canvas.bbox(label)
+                    box = canvas.create_rectangle(left-7, top-5, right+7, bottom+5, fill=color, outline="#728493")
+                    canvas.tag_lower(box, label)
+                    line = canvas.create_line(cx, cy, x, y, fill="#728493")
+                    canvas.tag_lower(line)
+            box = canvas.create_oval(cx-hub_width/2, cy-22, cx+hub_width/2, cy+22,
+                                     fill="#294b69", outline="")
+            canvas.tag_raise(hub, box)
+            canvas.configure(scrollregion=(0, 0, width, height))
+
+        def draw_delegations(self, event=None):
+            canvas = self.delegation_diagram
+            canvas.delete("all")
+            relations = {}
+            if self.preview_graph:
+                for privilege in self.preview_graph["privilegeList"]:
+                    key = (privilege["privilegedGroup"], privilege["subject"], privilege["object"])
+                    relations.setdefault(key, set()).add(privilege["privilegeType"])
+            if not relations:
+                message = "No delegation privileges configured." if self.preview_graph else "Waiting for a valid graph."
+                canvas.create_text(12, 12, anchor="nw", text=message, fill="#435566")
+
+            y = 12
+            for (delegator, delegatee, resource), kinds in relations.items():
+                x = max(104, canvas.winfo_width() // 3)
+                def node(top, role, group):
+                    heading = canvas.create_text(x, top + 5, anchor="n", text=role,
+                                                 font=("TkDefaultFont", 10, "bold"), fill="#172d40")
+                    name = canvas.create_text(x, canvas.bbox(heading)[3], anchor="n", text=group,
+                                              justify="center", width=2*x-30, fill="#172d40")
+                    left, upper, right, bottom = canvas.bbox(heading, name)
+                    box = canvas.create_rectangle(left-7, upper-4, right+7, bottom+4,
+                                                  fill="#d9ebfb", outline="#728493")
+                    canvas.tag_lower(box, heading)
+                    return bottom + 4
+
+                start = node(y, "Delegator", delegator)
+                actions = " / ".join(label for kind, label in (("DelegationGrant", "Grant"),
+                                                               ("DelegationRevoke", "Revoke")) if kind in kinds)
+                edge_label = canvas.create_text(x+12, start+6, anchor="nw",
+                                                width=max(120, canvas.winfo_width()-x-28),
+                                                text=f"{actions}\nTarget resource: {resource}", fill="#234d37")
+                end = canvas.bbox(edge_label)[3] + 10
+                canvas.create_line(x, start, x, end, arrow="last", width=2, fill="#435566")
+                y = node(end, "Delegatee", delegatee) + 20
+
+            left, top, right, bottom = canvas.bbox("all")
+            canvas.configure(scrollregion=(0, 0, right+12, bottom+12))
+
         def refresh_preview(self):
             try:
-                content = json.dumps(self.graph(), indent=4)
+                self.preview_graph = self.graph()
+                content = json.dumps(self.preview_graph, indent=4)
             except ValueError as error:
+                self.preview_graph = None
                 content = str(error)
+            self.draw_assignments()
+            self.draw_delegations()
             self.preview.configure(state="normal")
             self.preview.delete("1.0", "end")
             self.preview.insert("1.0", content)
