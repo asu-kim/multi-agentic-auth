@@ -539,8 +539,9 @@ def main():
             frame = ttk.Frame(parent)
             frame.pack(fill="both", expand=True, pady=12)
             tree = ttk.Treeview(frame, columns=columns, show="headings", selectmode="browse")
+            headings = {"url": "Agent URL", "actor": "Delegator", "subject": "Delegatee", "target": "Resource"}
             for col in columns:
-                tree.heading(col, text="Agent URL" if col == "url" else col.title())
+                tree.heading(col, text=headings.get(col, col.title()))
                 tree.column(col, width=150, minwidth=80)
             scroll = ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
             tree.configure(yscrollcommand=scroll.set)
