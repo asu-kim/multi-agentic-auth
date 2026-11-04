@@ -57,9 +57,9 @@ class LatencyTrace:
                                     "status": event.get("status", "ok"), "source": "node",
                                     "attributes": attributes})
             if not measured_key:
-                self.warnings.append(f"No session-key callback timing for {attributes.get('resource')}; check accessor version or early termination.")
+                self.warnings.append(f"No session-key callback timing for {attributes.get('resource')}; check IoTAuth module resolution or early termination.")
         except (OSError, ValueError, KeyError, TypeError, AttributeError):
-            # Aborted or older Node processes may not have timing data.
+            # Aborted or custom command processes may not have timing data.
             self.warnings.append(f"SST timing data unavailable for {attributes.get('resource')}.")
 
     def finish(self, outcome):

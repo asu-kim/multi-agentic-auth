@@ -129,7 +129,7 @@ Cleanup runs within the active Manager request. A process crash or interrupted t
 
 ## Latency Measurements
 
-Latency recording is enabled by default. Restart the agents after deploying the updated code. Also deploy `iotauth/entity/node/accessors/SecureCommClient.js` on the worker host; its timing hook measures session-key acquisition directly.
+Latency recording is enabled by default. Restart the agents after deploying the updated code. No changes to `SecureCommClient.js` or the SST library are required. The command adapter wraps the existing `iotAuth.sendSessionKeyReq` function inside its fresh Node process to measure the request and response callback. It resolves the same module instance as the accessor.
 
 Run a task as usual:
 
