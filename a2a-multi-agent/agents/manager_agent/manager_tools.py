@@ -1,5 +1,6 @@
 """Manager decisions backed by discovered cards; delegate authority and dispatch to the selected worker."""
 import os
+from copy import deepcopy
 from typing import Literal
 from uuid import uuid4
 from agents.common.warehouse_delivery import catalog_endpoints, delivery_groups
@@ -69,6 +70,23 @@ TOOLS = [
 ]
 
 
+def tools_for_roster(urls) -> list[dict]:
+    """Expose configured addresses as choices without encoding capabilities."""
+    tools = deepcopy(TOOLS)
+    addresses = list(dict.fromkeys(url.rstrip("/") for url in urls))
+    for tool in tools:
+        address = tool["function"]["parameters"].get("properties", {}).get("agent_url")
+        if address is not None:
+            # finish_search also permits null when no agent matches.
+            if "anyOf" in address:
+                for variant in address["anyOf"]:
+                    if variant.get("type") == "string":
+                        variant["enum"] = addresses
+            else:
+                address["enum"] = addresses
+    return tools
+
+
 class ManagerTools:
     """Per-search evidence; the LLM chooses actions and assesses free-text limits."""
 
@@ -123,7 +141,12 @@ class ManagerTools:
     def address(self, value: str) -> str:
         url = value.rstrip("/")
         if url not in self.urls:
-            raise ValueError("Use an agent_url from the configured roster.")
+            raise ValueError(
+                "Use an agent_url from the configured roster. "
+                f"Allowed addresses: {list(self.urls)}. "
+                f"Addresses without a loaded card: {[u for u in self.urls if u not in self.cards]}. "
+                "Copy an address exactly and continue discovery."
+            )
         return url
 
     async def execute(self, name: str, arguments: dict) -> dict:

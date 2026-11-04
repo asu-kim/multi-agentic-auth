@@ -6,13 +6,17 @@ from pathlib import Path
 
 from agents.common.agent_card_loader import load_agent_card
 from agents.common.search_models import SearchRequest, SearchResult
-from agents.manager_agent.manager_tools import ManagerTools, TOOLS
+from agents.manager_agent.manager_tools import ManagerTools, tools_for_roster
 
 logger = logging.getLogger(__name__)
 
 SYSTEM_INSTRUCTION = """Select ONE agent using only A2A Agent Cards. You choose
 which tool to call and which configured address to inspect next; no discovery order
 is required. You know addresses only until discover_agent returns their cards.
+Copy agent_url exactly from the configured roster or tool schema choices. If an
+address is rejected, correct it using the allowed addresses and continue discovery.
+Choose the next address yourself; do not ask the user which agent to inspect.
+Ask for missing task or authorization details when needed.
 Use set_requirements for ALL required capabilities. If required_capabilities is empty, 
 infer all required capabilities from the query. Match synonyms to card skill
 IDs, but preserve unsupported requirements as descriptive snake_case IDs. Never
@@ -92,6 +96,7 @@ class ManagerAgent:
     async def search(self, request: SearchRequest) -> SearchResult:
         # Conversation/evidence state belongs to this call, not the shared server instance.
         actions = ManagerTools(request, self.urls, self.peer)
+        tools = tools_for_roster(actions.urls)
         messages = [
             {"role": "system", "content": SYSTEM_INSTRUCTION},
             {"role": "user", "content": json.dumps({"request": request.model_dump(),
@@ -106,7 +111,7 @@ class ManagerAgent:
         try:
             async with asyncio.timeout(self.timeout):
                 for turn in range(1, self.max_turns + 1):
-                    message = await self.llm.chat(messages, TOOLS)
+                    message = await self.llm.chat(messages, tools)
                     # Observation only: remove provider reasoning before replaying the message.
                     thoughts = {field: message.pop(field) for field in
                                 ("reasoning", "reasoning_content", "thinking")

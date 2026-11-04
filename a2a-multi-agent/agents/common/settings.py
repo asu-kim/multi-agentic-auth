@@ -7,6 +7,29 @@ from urllib.parse import urlsplit
 from dotenv import load_dotenv
 
 
+def load_agent_groups() -> dict[str, str]:
+    """Read trusted A2A address-to-IoTAuth-group configuration."""
+    try:
+        groups = json.loads(os.getenv("IOTAUTH_AGENT_GROUPS", "{}"))
+    except ValueError as exc:
+        raise ValueError("IOTAUTH_AGENT_GROUPS must be a JSON object mapping agent URLs to groups.") from exc
+    if not isinstance(groups, dict):
+        raise ValueError("IOTAUTH_AGENT_GROUPS must map agent URLs to single-token IoTAuth group names.")
+    normalized = {}
+    for url, group in groups.items():
+        if (not isinstance(url, str) or not isinstance(group, str)
+                or not re.fullmatch(r"[A-Za-z0-9_.-]+", group)):
+            raise ValueError("IOTAUTH_AGENT_GROUPS must map agent URLs to single-token IoTAuth group names.")
+        parsed = urlsplit(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            raise ValueError(f"Invalid agent URL in IOTAUTH_AGENT_GROUPS: {url}")
+        address = url.rstrip("/")
+        if address in normalized and normalized[address] != group:
+            raise ValueError(f"Conflicting IoTAuth groups for agent URL: {address}")
+        normalized[address] = group
+    return normalized
+
+
 @dataclass(frozen=True)
 class Settings:
     llm_url: str
@@ -32,8 +55,18 @@ class Settings:
             for role, port in [("manager", 10000), ("drone", 10001),
                                ("rover", 10002), ("forklift", 10003)]
         }
-        roster = os.getenv("AGENT_URLS", ",".join(v for k, v in urls.items() if k != "manager"))
-        agent_urls = tuple(dict.fromkeys(x.strip() for x in roster.split(",") if x.strip()))
+        groups = load_agent_groups()
+        roster = os.getenv("AGENT_URLS")
+        if roster is not None:
+            # Optional explicit subset for deployments that restrict discovery.
+            agent_urls = tuple(dict.fromkeys(x.strip() for x in roster.split(",") if x.strip()))
+            missing = [url for url in agent_urls if url.rstrip("/") not in groups]
+            if groups and missing:
+                raise ValueError(f"AGENT_URLS entries are missing from IOTAUTH_AGENT_GROUPS: {missing}")
+        elif groups:
+            agent_urls = tuple(url for url in groups if url != urls["manager"].rstrip("/"))
+        else:
+            agent_urls = tuple(v for k, v in urls.items() if k != "manager")
         for url in [llm_url, *urls.values(), *agent_urls]:
             parsed = urlsplit(url)
             if parsed.scheme not in {"http", "https"} or not parsed.hostname:

@@ -5,6 +5,7 @@ import os
 import re
 from pathlib import Path
 from agents.common.search_models import DelegationScope
+from agents.common.settings import load_agent_groups
 
 
 class IoTAuthDelegate:
@@ -17,14 +18,7 @@ class IoTAuthDelegate:
         if self.timeout <= 0:
             raise ValueError("IOTAUTH_TIMEOUT_SECONDS must be positive.")
         # Trusted deployment mapping: never derive authorization subjects from card text.
-        subjects = json.loads(os.getenv("IOTAUTH_AGENT_GROUPS", "{}"))
-        if not isinstance(subjects, dict) or any(
-            not isinstance(url, str) or not isinstance(group, str)
-            or not re.fullmatch(r"[A-Za-z0-9_.-]+", group)
-            for url, group in subjects.items()
-        ):
-            raise ValueError("IOTAUTH_AGENT_GROUPS must map agent URLs to single-token IoTAuth group names.")
-        self.subjects = {url.rstrip("/"): group for url, group in subjects.items()}
+        self.subjects = load_agent_groups()
 
     async def delegate(self, agent_url: str, resource: str, validity: str) -> dict:
         # Revalidate at the subprocess boundary, including direct Python callers.

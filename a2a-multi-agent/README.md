@@ -67,10 +67,10 @@ test -f .env || cp .env.example .env
 Configure these settings in `.env`.
 
 - `TOOL_LLM_URL`, `MANAGER_MODEL`, and `SUBAGENT_MODEL` select the LLM endpoint and models. The default endpoint is `http://127.0.0.1:11435/v1`.
-- `AGENT_URLS` lists the workers available for discovery.
 - `LOCAL_AGENT_MODULES` lists the local agent processes to start. The example starts Manager, Drone, Rover, and Forklift. Remote agents must be started on their own hosts.
 - `MANAGER_URL`, `DRONE_URL`, `ROVER_URL`, and `FORKLIFT_URL` set the advertised A2A addresses. Each server listens on `127.0.0.1` by default. For remote access, start its module with an appropriate `--host` address.
-- `IOTAUTH_AGENT_GROUPS` maps each selectable A2A URL to its registered SST group. Match the group names to the provisioned Auth database.
+- `IOTAUTH_AGENT_GROUPS` supplies the discovery addresses and maps each address to its registered SST group. Manager excludes its own `MANAGER_URL` and reads worker capabilities from Agent Cards. Match group names to the provisioned Auth database.
+- `AGENT_URLS` is optional. Set it only to restrict discovery to a subset of the mapped addresses. When no group mapping is configured, discovery falls back to the worker `*_URL` settings.
 - `IOTAUTH_GRAPH_FILE` and `IOTAUTH_MANAGER_ENTITY` select the resource catalog and Manager identity.
 - `IOTAUTH_MANAGER_CONFIG`, `IOTAUTH_FORKLIFT_CONFIG`, `IOTAUTH_DRONE_CONFIG`, and `IOTAUTH_ROVER_CONFIG` select each entity's configuration.
 - `IOTAUTH_ENTITY_DIR` optionally overrides the default sibling `iotauth/entity/node/example_entities` directory.

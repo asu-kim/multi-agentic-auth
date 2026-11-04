@@ -37,7 +37,6 @@ In `a2a-multi-agent/.env`, check the following values.
 ```dotenv
 MANAGER_URL=http://127.0.0.1:10000/
 FORKLIFT_URL=http://127.0.0.1:10003/
-AGENT_URLS=http://127.0.0.1:10003/
 LOCAL_AGENT_MODULES='["agents.manager_agent","agents.forklift_agent"]'
 IOTAUTH_AGENT_GROUPS='{"http://127.0.0.1:10000/":"ManagerAgent","http://127.0.0.1:10003/":"ForkliftAgent"}'
 IOTAUTH_ENTITY_DIR=/home/USER/multi-agentic-auth/iotauth/entity/node/example_entities
@@ -50,6 +49,8 @@ IOTAUTH_GATE_GROUP=Gate
 GAZEBO_DELIVERY_URL=http://127.0.0.1:21200
 A2A_TIMEOUT_SECONDS=900
 ```
+
+Manager discovers the worker addresses in `IOTAUTH_AGENT_GROUPS`, excluding `MANAGER_URL`. Add Drone and Rover mappings and local modules to include them in selection. Remove an old `AGENT_URLS` override if you want to use every mapped worker.
 
 Adjust `IOTAUTH_ENTITY_DIR` if your server repository is elsewhere. In the server graph and worker resource settings, use `localhost:21100` for Gate and `localhost:21101` for TargetItem. Manager needs delegation and revocation privileges for both groups. Configure the Mac resources to reach Auth at `localhost:21900`.
 
