@@ -10,7 +10,7 @@ from agents.common.search_models import DelegationScope
 class IoTAuthDelegate:
     def __init__(self):
         self.directory = Path(os.getenv("IOTAUTH_ENTITY_DIR", str(
-            Path(__file__).resolve().parents[4] / "iotauth/entity/node/example_entities")))
+            Path(__file__).resolve().parents[3] / "iotauth/entity/node/example_entities")))
         self.config = os.getenv("IOTAUTH_MANAGER_CONFIG", "configs/net1/managerAgent.config")
         self.node = os.getenv("IOTAUTH_NODE", "node")
         self.timeout = float(os.getenv("IOTAUTH_TIMEOUT_SECONDS", "30"))

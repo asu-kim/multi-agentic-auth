@@ -29,7 +29,7 @@ def main():
     target.add_argument("--agent", choices=["drone", "rover", "forklift"])
     target.add_argument("--url", help="Worker A2A URL, for example selected_agent.url")
     parser.add_argument("--json", action="store_true")
-    parser.add_argument("--tool", choices=["establish_secure_communication", "grasp_box", "deliver_to_safe_zone"], help="Explicit forklift tool; bypass LLM action selection")
+    parser.add_argument("--tool", choices=["deliver_to_safe_zone"], help="Execute warehouse delivery directly; bypass worker LLM action selection")
     args = parser.parse_args()
     try:
         sys.exit(asyncio.run(run(args)))

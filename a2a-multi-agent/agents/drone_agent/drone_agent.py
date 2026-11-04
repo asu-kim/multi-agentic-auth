@@ -4,7 +4,7 @@ from agents.common.task_agent import TaskAgent
 
 
 class DroneAgent(TaskAgent):
-    """Publish warehouse drone capabilities and produce simulated task plans."""
+    """Publish warehouse drone capabilities and execute shared delivery tasks."""
     worker = "DRONE"
     default_config = "droneAgent"
 
@@ -12,5 +12,6 @@ class DroneAgent(TaskAgent):
         card = load_agent_card(Path(__file__).with_name("drone_agent_card.json"), url)
         super().__init__(card, llm, instructions=(
             "You are the warehouse drone agent. Your modeled capabilities are "
-            "reach top shelf and carry light items. Produce a simulated retrieval or transport plan only. "
+            "reach top shelf and carry light items. Use the shared delivery action for retrieval through a gate into "
+            "the secure zone. For other physical tasks, return a simulated plan. "
         ), simulation=True)

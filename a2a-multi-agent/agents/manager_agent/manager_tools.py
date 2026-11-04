@@ -58,7 +58,7 @@ TOOL_SPECS = {
     "assess_agent": (CardAssessment, "Record YOUR suitability judgment based on the discovered card and original task, including all limits. No request is sent to the agent."),
     "delegate_authority": (AgentAddress, "After a positive assessment, grant the identified agent's configured IoTAuth group authority over the explicit or selected resource through Auth. Omitted duration uses the matching graph privilege validity. Select an omitted resource from list_resources first. Call before finish_search. A failed or uncertain request must not be retried automatically."),
     "revoke_authority": (AgentAddress, "After the worker reports completed or simulated, revoke the exact confirmed grant using user.js. Call before finish_search. Do not retry uncertain revocations."),
-    "dispatch_task": (AgentAddress, "After successful delegation, send the selected agent its task over A2A. For a secure-communication capable forklift, request connection to its configured target; otherwise forward the original task. Observe the worker result before finishing. Never retry uncertain execution."),
+    "dispatch_task": (AgentAddress, "After successful delegation, send the selected agent its task over A2A. With confirmed grants for both item and gate, request deliver_to_safe_zone with the original task and resource endpoints. Otherwise forward the original task. Observe the worker result before finishing. Never retry uncertain execution."),
     "finish_search": (Finish, "Select a positively assessed card matching all required skills, or report not_found after inspecting the roster and rejecting every skill-matching candidate."),
     "ask_user": (Clarification, "Ask a specific question if requirements or feasibility details are missing."),
 }
@@ -257,9 +257,6 @@ class ManagerTools:
         groups = [g["object"] for g in grant.get("grants", [grant]) if g.get("object")]
         if set(delivery_groups()).issubset(groups):
             requested_tool = "deliver_to_safe_zone"
-        elif "secure_communication" in {skill.id for skill in card.skills}:
-            requested_tool = "establish_secure_communication"
-            query = "Establish secure communication with your configured target resource using establish_secure_communication. Report whether the connection succeeded."
         # Record before sending: failed/uncertain requests must not be replayed.
         self.dispatched_url = url
         self.task_result = {"status": "error", "output": "Worker request interrupted; execution outcome unknown. Do not retry automatically."}

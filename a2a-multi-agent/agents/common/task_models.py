@@ -14,7 +14,7 @@ class TaskRequest(StrictModel):
     query: str = Field(min_length=1, max_length=32000)
     delegated_groups: list[ResourceGroup] | None = None
     resource_endpoints: dict[ResourceGroup, ResourceEndpoint] | None = None
-    requested_tool: Literal["establish_secure_communication", "grasp_box", "deliver_to_safe_zone"] | None = None
+    requested_tool: Literal["deliver_to_safe_zone"] | None = None
 
 
 class TaskAnswer(StrictModel):

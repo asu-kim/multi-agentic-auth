@@ -11,7 +11,7 @@
     "text/plain",
     "application/json"
   ],
-  "description": "Warehouse drone agent modeled on Section 2.3: reaches the top shelf and carries light items. Limits: Cannot carry heavy items or reach the middle shelf. Top-shelf retrieval only. Execution is simulated planning only; no hardware interface is connected. Capability does not grant access: protected resources require a valid, unrevoked permission for the authorized task interval.",
+  "description": "Warehouse drone agent modeled on Section 2.3: reaches the top shelf and carries light items. Limits: Cannot carry heavy items or reach the middle shelf. Top-shelf retrieval only. Capability does not grant access: protected resources require a valid, unrevoked permission for the authorized task interval. Executes simulated delivery through a gate into the secure zone using the shared deliver_to_safe_zone workflow, subject to SST access permissions and the stated shelf and payload limits.",
   "name": "Drone Agent",
   "preferredTransport": "JSONRPC",
   "protocolVersion": "0.3.0",
@@ -19,7 +19,7 @@
     {
       "id": "reach_top_shelf",
       "name": "Reach top shelf",
-      "description": "Model the physical capability to reach the top shelf; return a simulated retrieval plan, not hardware execution.",
+      "description": "Model access to a top-shelf storage location for retrieval in the warehouse scenario. Protected item retrieval requires valid SST authorization.",
       "tags": [
         "reach_top_shelf"
       ],
@@ -36,6 +36,20 @@
       ],
       "examples": [
         "Plan carrying a light item retrieved from the top shelf."
+      ]
+    },
+    {
+      "id": "deliver_to_safe_zone",
+      "name": "Deliver to secure zone through a gate",
+      "description": "Execute the shared simulated warehouse delivery workflow. Approach and retrieve an authorized item, carry it to the gate, request gate opening, traverse the open gate, and place the item in the secure zone. This skill includes gate traversal and delivery. It requires valid SST access to both the item and gate. The agent's shelf-reach and payload limits still apply.",
+      "tags": [
+        "deliver_to_safe_zone",
+        "delivery",
+        "gate_traversal",
+        "secure_zone"
+      ],
+      "examples": [
+        "Retrieve a light target item from the top shelf and deliver it to the secure zone through the gate."
       ]
     }
   ],

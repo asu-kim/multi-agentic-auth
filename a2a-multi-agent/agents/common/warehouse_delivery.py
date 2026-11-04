@@ -13,7 +13,7 @@ from agents.manager_agent.resource_catalog import load_resource_catalog
 
 
 def delivery_groups():
-    return (os.getenv("IOTAUTH_ITEM_GROUP", "Resource"), os.getenv("IOTAUTH_GATE_GROUP", "Gate"))
+    return (os.getenv("IOTAUTH_ITEM_GROUP", "TargetItem"), os.getenv("IOTAUTH_GATE_GROUP", "Gate"))
 
 
 def delivery_endpoints(entities):
