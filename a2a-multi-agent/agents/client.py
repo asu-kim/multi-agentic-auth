@@ -42,6 +42,8 @@ def print_result(result: SearchResult, *, as_json: bool = False, trace: bool = F
                 for field, text in fields.items():
                     print(f"Turn {turn['turn']} [Ollama {field}]:")
                     print(text, end="" if text.endswith("\n") else "\n")
+    if result.latency and result.latency.get("file"):
+        print(f"Latency JSON: {result.latency['file']}")
     for attempt in result.attempts:
         print(f"  {attempt.agent_name} / {attempt.phase}: {attempt.status} — {attempt.detail}")
 

@@ -4,6 +4,8 @@ import json
 import os
 import re
 from pathlib import Path
+from time import perf_counter_ns
+from agents.common.latency import current_trace
 from agents.common.search_models import DelegationScope
 from agents.common.settings import load_agent_groups
 
@@ -44,6 +46,9 @@ class IoTAuthDelegate:
             return {"status": "error", "error": f"Entity manager config not found: {config}"}
         process = None
         sent = False
+        request_started = None
+        confirmed = False
+        process_started = perf_counter_ns()
         try:
             async with asyncio.timeout(self.timeout):
                 process = await asyncio.create_subprocess_exec(
@@ -55,6 +60,10 @@ class IoTAuthDelegate:
                 while line := await process.stdout.readline():
                     text = line.decode("utf-8", errors="replace").strip()
                     if text == "IOTAUTH_READY" and not sent:
+                        request_started = perf_counter_ns()
+                        trace = current_trace()
+                        if trace is not None:
+                            trace.record("iotauth_node_startup", process_started, action=action, resource=resource)
                         process.stdin.write((command + "\n").encode("utf-8"))
                         sent = True
                         await process.stdin.drain()
@@ -77,6 +86,7 @@ class IoTAuthDelegate:
                                     or grant.get("RequestingGroup") != subject
                                     or grant.get("TargetType") != "Group" or grant.get("Target") != resource):
                                 return {"status": "error", "error": "IoTAuth did not confirm a matching DelegationGrant.", "request_sent": sent}
+                            confirmed = True
                             return {"status": "delegated", "subject": subject, "object": resource,
                                     "validity": validity, "communication_policy": policy,
                                     "confirmation": ["received privilege response!", "Finished privilege request"]}
@@ -89,6 +99,7 @@ class IoTAuthDelegate:
                                 or target.get("TargetType") not in ("Group", "TARGET_GROUP")
                                 or target.get("Target") != resource):
                             return {"status": "error", "error": "IoTAuth did not confirm a matching DelegationRevoke.", "request_sent": sent}
+                        confirmed = True
                         return {"status": "revoked", "subject": subject, "object": resource,
                                 "communication_policy": policy,
                                 "confirmation": ["received privilege response!", "Finished privilege request"]}
@@ -98,6 +109,10 @@ class IoTAuthDelegate:
             return {"status": "error", "error": str(exc) or "IoTAuth privilege request timed out.",
                     "request_sent": sent}
         finally:
+            trace = current_trace()
+            if trace is not None and request_started is not None:
+                trace.record("auth_privilege_command_round_trip", request_started,
+                             status="ok" if confirmed else "error", action=action, resource=resource)
             if process is not None and process.returncode is None:
                 try:
                     process.terminate()

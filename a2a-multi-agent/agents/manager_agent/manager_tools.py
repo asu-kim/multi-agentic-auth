@@ -3,6 +3,8 @@ import os
 from copy import deepcopy
 from typing import Literal
 from uuid import uuid4
+from time import perf_counter_ns
+from agents.common.latency import current_trace, measure
 from agents.common.warehouse_delivery import catalog_endpoints, delivery_groups
 from agents.common.task_models import TaskRequest, TaskResult
 
@@ -111,6 +113,7 @@ class ManagerTools:
         self.resolved_delegation = None
         self.resolved_delegations = []
         self._catalog = None
+        self.assessment_times = {}
 
     async def list_resources(self, args: ListResources) -> dict:
         if self._catalog is None:
@@ -154,14 +157,19 @@ class ManagerTools:
             raise ValueError(f"Unknown tool: {name}")
         schema, _ = TOOL_SPECS[name]
         params = schema.model_validate(arguments)
-        return await getattr(self, name)(params)
+        with measure("manager_tool", tool=name) as timing:
+            result = await getattr(self, name)(params)
+            if result.get("error") or result.get("status") == "error":
+                timing["status"] = "error"
+            return result
 
     async def discover_agent(self, args: AgentAddress) -> dict:
         url = self.address(args.agent_url)
         self.inspected.add(url)
         self.assessments.pop(url, None)
         try:
-            card = await self.peer.discover(url + "/")
+            with measure("a2a_card_discovery", agent_url=url):
+                card = await self.peer.discover(url + "/")
             if card.url.rstrip("/") != url:
                 raise ValueError("The card advertises a different endpoint from the configured address.")
             self.cards[url] = card
@@ -201,6 +209,7 @@ class ManagerTools:
             raise ValueError(f"Card lacks required capabilities: {', '.join(sorted(missing))}.")
         assessment = args.model_copy(update={"agent_url": self.cards[url].url})
         self.assessments[url] = assessment
+        self.assessment_times[url] = perf_counter_ns()
         self.attempts.append(Attempt(agent_name=self.cards[url].name, agent_url=self.cards[url].url,
             phase="assessment", status="suitable" if args.suitable else "unsuitable", detail=args.reason))
         return assessment.model_dump()
@@ -245,9 +254,16 @@ class ManagerTools:
         self.resolved_delegation = scopes[0] if len(scopes) == 1 else None
         grants = []
         batch = {"status": "error", "error": "Delegation outcome unknown; do not retry.", "grants": grants}
+        trace = current_trace()
+        if trace is not None and not self.delegations:
+            trace.record("agent_selection", trace.started_ns,
+                         end_ns=self.assessment_times[url], agent_url=url)
         self.delegations[url] = batch
         for scope in scopes:
-            grant = await delegate.delegate(url, scope.resource, scope.validity)
+            with measure("delegation", agent_url=url, resource=scope.resource) as timing:
+                grant = await delegate.delegate(url, scope.resource, scope.validity)
+                if grant.get("status") != "delegated":
+                    timing["status"] = "error"
             if grant.get("status") != "delegated":
                 if len(scopes) == 1:
                     self.delegations[url] = grant
@@ -287,10 +303,27 @@ class ManagerTools:
             endpoints = None
             if requested_tool == "deliver_to_safe_zone" and (self._catalog is not None or os.getenv("IOTAUTH_GRAPH_FILE", "").strip()):
                 endpoints = catalog_endpoints(await self.list_resources(ListResources()))
+            trace = current_trace()
             request = TaskRequest(query=query, requested_tool=requested_tool, delegated_groups=groups,
-                                  resource_endpoints=endpoints)
-            response = await self.peer.send(card, request.model_dump(exclude_none=True), uuid4().hex)
-            self.task_result = TaskResult.model_validate(response).model_dump()
+                                  resource_endpoints=endpoints,
+                                  trace_id=trace.trace_id if trace else None)
+            started = perf_counter_ns()
+            with measure("a2a_task_round_trip", agent_url=url) as timing:
+                response = await self.peer.send(card, request.model_dump(exclude_none=True), uuid4().hex)
+                self.task_result = TaskResult.model_validate(response).model_dump()
+                if self.task_result["status"] == "error":
+                    timing["status"] = "error"
+            round_trip_ms = (perf_counter_ns() - started) / 1e6
+            worker_trace = self.task_result.get("latency")
+            if trace is not None and isinstance(worker_trace, dict):
+                trace.worker_traces.append(worker_trace)
+                worker_ms = worker_trace.get("total_ms")
+                if isinstance(worker_ms, (int, float)) and 0 <= worker_ms <= round_trip_ms:
+                    # Includes request/response transport, queues and serialization.
+                    # This is not a one-way network latency measurement.
+                    trace.events.append({"name": "a2a_task_overhead_estimate",
+                        "duration_ms": round_trip_ms - worker_ms, "status": "estimated",
+                        "attributes": {"agent_url": url}})
         except Exception as exc:
             self.task_result = {"status": "error", "output": f"Worker request failed; execution may be uncertain: {exc}"}
         return self.task_result
@@ -312,7 +345,10 @@ class ManagerTools:
         results = []
         for grant in grants:
             try:
-                result = await IoTAuthDelegate().revoke(grant["subject"], grant["object"])
+                with measure("revocation", resource=grant["object"], subject=grant["subject"]) as timing:
+                    result = await IoTAuthDelegate().revoke(grant["subject"], grant["object"])
+                    if result.get("status") != "revoked":
+                        timing["status"] = "error"
             except (OSError, ValueError, TimeoutError) as exc:
                 result = {"status": "error", "error": str(exc) or "Revocation failed."}
             results.append({"object": grant["object"], **result})

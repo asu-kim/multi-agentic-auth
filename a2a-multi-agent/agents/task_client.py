@@ -19,6 +19,8 @@ async def run(args):
             TaskRequest(query=args.query, requested_tool=getattr(args, "tool", None)).model_dump(exclude_none=True), uuid4().hex))
     print(json.dumps(result.model_dump(), indent=2, ensure_ascii=False) if args.json
           else f"{result.agent_name} [{result.status}]\n{result.output}")
+    if not args.json and result.latency and result.latency.get("file"):
+        print(f"Latency JSON: {result.latency['file']}")
     return 0 if result.status in {"completed", "simulated"} else 1
 
 

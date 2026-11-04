@@ -5,6 +5,8 @@ import math
 import os
 from pathlib import Path
 from uuid import uuid4
+from tempfile import TemporaryDirectory
+from agents.common.latency import current_trace, measure
 
 import httpx
 
@@ -58,7 +60,7 @@ async def deliver(agent_name, worker, default_config, delegated_groups, endpoint
     simulator = os.getenv("GAZEBO_DELIVERY_URL", "").strip().rstrip("/")
     run_id = uuid4().hex
 
-    async def animate(action):
+    async def animate_impl(action):
         if not simulator:
             return
         async with httpx.AsyncClient(timeout=90, trust_env=False) as client:
@@ -69,6 +71,11 @@ async def deliver(agent_name, worker, default_config, delegated_groups, endpoint
             if action in expected_stage and response.json().get("stage") != expected_stage[action]:
                 raise ValueError(f"Gazebo did not confirm {action}.")
 
+    async def animate(action):
+        if simulator:
+            with measure("gazebo_action", action=action):
+                await animate_impl(action)
+
     steps = [(item, "RETRIEVE_ITEM", "retrieved"), (gate, "OPEN_GATE", "open")]
     confirmed = []
     completed = False
@@ -78,19 +85,32 @@ async def deliver(agent_name, worker, default_config, delegated_groups, endpoint
             raise ValueError("Invalid IOTAUTH_TIMEOUT_SECONDS")
         await animate("begin")
         for group, command, expected in steps:
-            proc = await asyncio.create_subprocess_exec(
-                os.getenv("IOTAUTH_NODE", "node"), str(script), config, group, endpoints[group].host, str(endpoints[group].port), command,
-                cwd=directory, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
-            try:
-                async with asyncio.timeout(timeout):
-                    code = await proc.wait()
-            finally:
-                if proc.returncode is None:
+            with TemporaryDirectory(prefix="sst-latency-") as telemetry_dir:
+                telemetry = Path(telemetry_dir) / "timings.json"
+                trace = current_trace()
+                env = dict(os.environ)
+                if trace is not None:
+                    env["IOTAUTH_LATENCY_FILE"] = str(telemetry)
+                with measure("sst_resource_command", resource=group, command=command) as timing:
+                    proc = await asyncio.create_subprocess_exec(
+                        os.getenv("IOTAUTH_NODE", "node"), str(script), config, group,
+                        endpoints[group].host, str(endpoints[group].port), command,
+                        cwd=directory, env=env, stdout=asyncio.subprocess.DEVNULL,
+                        stderr=asyncio.subprocess.DEVNULL)
                     try:
-                        proc.kill()
-                    except ProcessLookupError:
-                        pass
-                    await proc.wait()
+                        async with asyncio.timeout(timeout):
+                            code = await proc.wait()
+                        if code:
+                            timing["status"] = "error"
+                    finally:
+                        if proc.returncode is None:
+                            try:
+                                proc.kill()
+                            except ProcessLookupError:
+                                pass
+                            await proc.wait()
+                        if trace is not None:
+                            trace.import_node(telemetry, resource=group, command=command)
             if code:
                 detail = {2: "invalid endpoint", 3: "unexpected secure reply"}.get(code, "secure command failed")
                 raise ValueError(f"{command} on {group}: {detail}")

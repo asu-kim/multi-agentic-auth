@@ -125,10 +125,43 @@ After the worker reports `completed` or `simulated`, Manager calls `revoke_autho
 
 Cleanup runs within the active Manager request. A process crash or interrupted task may leave a grant active. Inspect Auth state before repeating a failed experiment. Reset the Gazebo scene between trials using the command in the simulation guide.
 
-## Tests
+
+
+## Latency Measurements
+
+Latency recording is enabled by default. Restart the agents after deploying the updated code. Also deploy `iotauth/entity/node/accessors/SecureCommClient.js` on the worker host; its timing hook measures session-key acquisition directly.
+
+Run a task as usual:
 
 ```bash
-python -m unittest discover -s tests -v
+python -m agents.client "Retrieve the heavy target item from the middle shelf and deliver it to the secure zone through the gate." \
+  --capability reach_middle_shelf --capability carry_heavy_items --capability deliver_to_safe_zone \
+  --resource TargetItem --resource Gate --validity '5*min' --json
 ```
 
-Tests cover card discovery and selection, A2A dispatch, worker identity routing, SST replies, delegation and revocation, and simulation sequencing. Model and resource doubles make these checks deterministic. Live LLM decisions and the distributed experiment require separate runs.
+Each request writes a JSON file under `a2a-multi-agent/results/latency/` on the service host. Manager files are named `<trace_id>_manager_<id>.json`; worker files use `_worker_`. The Manager file includes the worker trace under `worker_traces`, even when the worker runs on another host. The A2A result also includes this data in `latency`. Direct worker requests save worker traces only.
+
+Set `LATENCY_OUTPUT_DIR` in `.env` to change the output directory. Relative paths resolve against the service working directory. Set `LATENCY_ENABLED=false` to disable recording. Files contain durations in milliseconds, outcomes, resource names, and timing events. They exclude session keys, task text, and model reasoning.
+
+| Metric | Measurement boundary |
+|---|---|
+| `agent_selection` | Manager entry to the accepted positive card assessment for the selected agent. Includes LLM decisions and discovery before that assessment. |
+| `a2a_card_discovery` | One Agent Card fetch, including HTTP and parsing. |
+| `manager_llm`, `worker_llm` | One model call, including generation and response handling. |
+| `delegation` | One resource grant call, including Node startup, Auth interaction, confirmation checks, and process cleanup. |
+| `revocation` | One resource revocation call, with the same boundary as delegation. |
+| `iotauth_node_startup` | Process launch to the `IOTAUTH_READY` signal. |
+| `auth_privilege_command_round_trip` | Sending the command to `user.js` through confirmation processing, before process cleanup. This includes local Node handling and Auth interaction. |
+| `a2a_task_round_trip` | Manager sends a worker task through receiving and validating its final result. Includes worker execution. |
+| `worker_execution` | Worker enters task execution through producing its result. |
+| `a2a_task_overhead_estimate` | A2A task round trip minus worker trace duration. Includes request/response transport, queues, serialization, and telemetry overhead. An estimate, not one-way network latency. |
+| `sst_session_key` | IoTAuth session-key request API invocation through its response callback, including response validation. Excludes Node startup and the resource handshake. |
+| `sst_connect` | Requesting a resource connection through the secure-connected callback. Includes key acquisition and handshake. |
+| `sst_handshake` | Successful key timing callback through the resource's secure-connected callback, including local setup. |
+| `sst_command_reply` | Sending `RETRIEVE_ITEM` or `OPEN_GATE` through its secure reply. A gate reply confirms command publication; Gazebo angle verification occurs in `finish`. |
+| `sst_resource_command` | The full resource-command subprocess, including startup and all SST steps. |
+| `gazebo_action` | One simulation bridge action, including its animation and HTTP response. |
+
+Use `events` for individual samples and their resource/command attributes. `summary` contains per-metric counts, successful counts, and total milliseconds. `total_ms` covers the local Manager or worker request through result generation, before saving its trace. Nested metrics overlap; do not add them to obtain total task time. Failed and cancelled attempts retain timings and status. Steps that were not reached are absent, rather than reported as zero. Missing Node telemetry appears in `warnings`.
+
+Durations use local monotonic clocks (`perf_counter_ns` in Python and `hrtime.bigint` in Node). A shared `trace_id` correlates Manager and worker records. No cross-host timestamp subtraction is used. Session-key samples come from fresh Node processes for each resource command; they do not measure session-key cache hits. Measurements include instrumentation overhead. Repeat trials, reset the scene between trials, and report failures separately from successful latency samples. Timing records are excluded from the model's tool observations to avoid enlarging its context. Recording does not trigger retries or additional resource actions.

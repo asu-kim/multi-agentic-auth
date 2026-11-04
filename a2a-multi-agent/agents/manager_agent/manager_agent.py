@@ -4,6 +4,7 @@ import json
 import logging
 from pathlib import Path
 
+from agents.common.latency import traced, measure, current_trace
 from agents.common.agent_card_loader import load_agent_card
 from agents.common.search_models import SearchRequest, SearchResult
 from agents.manager_agent.manager_tools import ManagerTools, tools_for_roster
@@ -93,6 +94,7 @@ class ManagerAgent:
         self.urls, self.peer, self.llm = urls, peer, llm
         self.max_turns, self.timeout = max_turns, timeout
 
+    @traced("manager")
     async def search(self, request: SearchRequest) -> SearchResult:
         # Conversation/evidence state belongs to this call, not the shared server instance.
         actions = ManagerTools(request, self.urls, self.peer)
@@ -105,13 +107,20 @@ class ManagerAgent:
         turns = []
 
         def with_turns(result):
+            trace = current_trace()
+            if trace is not None and result.selected_agent is not None:
+                url = result.selected_agent.url.rstrip("/")
+                if url in actions.assessment_times and not any(e["name"] == "agent_selection" for e in trace.events):
+                    trace.record("agent_selection", trace.started_ns,
+                                 end_ns=actions.assessment_times[url], agent_url=url)
             return result.model_copy(update={"manager_actions": list(actions.actions),
                                              "manager_turns": list(turns)})
 
         try:
             async with asyncio.timeout(self.timeout):
                 for turn in range(1, self.max_turns + 1):
-                    message = await self.llm.chat(messages, tools)
+                    with measure("manager_llm", turn=turn):
+                        message = await self.llm.chat(messages, tools)
                     # Observation only: remove provider reasoning before replaying the message.
                     thoughts = {field: message.pop(field) for field in
                                 ("reasoning", "reasoning_content", "thinking")
@@ -150,8 +159,11 @@ class ManagerAgent:
                         actions.actions.append({"turn": turn, "tool": name,
                             "arguments": arguments if isinstance(arguments, dict) else {"invalid": raw},
                             "result": result})
+                        # Timing records are returned to the caller, not fed back into
+                        # the model, so instrumentation does not enlarge its context.
+                        observation = {key: value for key, value in result.items() if key != "latency"}
                         messages.append({"role": "tool", "tool_call_id": call["id"],
-                                         "content": json.dumps(result)})
+                                         "content": json.dumps(observation)})
                     if actions.finished is not None:
                         return with_turns(actions.finished)
                 return with_turns(actions.result("error", f"Manager reached its {self.max_turns}-turn limit before finishing the search."))

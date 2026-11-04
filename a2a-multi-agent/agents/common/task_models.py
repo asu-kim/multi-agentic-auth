@@ -15,6 +15,7 @@ class TaskRequest(StrictModel):
     delegated_groups: list[ResourceGroup] | None = None
     resource_endpoints: dict[ResourceGroup, ResourceEndpoint] | None = None
     requested_tool: Literal["deliver_to_safe_zone"] | None = None
+    trace_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
 
 
 class TaskAnswer(StrictModel):
@@ -24,6 +25,7 @@ class TaskAnswer(StrictModel):
 
 
 class TaskResult(StrictModel):
+    latency: dict | None = None
     protocol: Literal["agent-task/v1"] = "agent-task/v1"
     agent_name: str
     status: Literal["completed", "simulated", "input_required", "declined", "error"]

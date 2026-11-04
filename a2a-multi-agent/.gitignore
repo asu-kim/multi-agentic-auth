@@ -3,5 +3,5 @@
 __pycache__/
 *.pyc
 *.egg-info/
-test/
-.idea
+a2a-multi-agent/tests/
+.idea/

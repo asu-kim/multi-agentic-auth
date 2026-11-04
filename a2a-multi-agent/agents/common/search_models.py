@@ -44,6 +44,7 @@ class Attempt(StrictModel):
 
 
 class SearchResult(StrictModel):
+    latency: dict | None = None
     status: Literal["found", "not_found", "input_required", "error"]
     query: str
     required_capabilities: list[str]
