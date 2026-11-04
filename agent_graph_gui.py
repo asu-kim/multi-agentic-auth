@@ -81,7 +81,7 @@ def build_graph(entities, rules, network="net1", auth_host="localhost", auth_id=
         if row["kind"] not in ("Agent", "Resource"):
             raise ValueError("Entity kind must be Agent or Resource.")
         entity = dict(group=group, name=name, distProtocol="TCP", usePermanentDistKey=True,
-                      distKeyValidityPeriod="1*hour", maxSessionKeysPerRequest=5,
+                      distKeyValidityPeriod="6*hour", maxSessionKeysPerRequest=5,
                       netName=network, credentialPrefix=network[0].upper()+network[1:]+"."+local,
                       distributionCryptoSpec=dict(cipher="AES-128-CBC", mac="SHA256"),
                       sessionCryptoSpec=dict(cipher="AES-128-CBC", mac="SHA256"), backupToAuthIds=[])
