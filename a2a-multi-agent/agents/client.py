@@ -64,7 +64,7 @@ def main():
     parser.add_argument("query")
     parser.add_argument("--capability", action="append", default=[],
                         help="Exact required skill ID; repeat for multiple requirements. The manager still chooses its actions.")
-    parser.add_argument("--resource", help="Optional resource group; otherwise the manager selects from IOTAUTH_GRAPH_FILE")
+    parser.add_argument("--resource", action="append", help="Required resource group; repeat for each group; otherwise the manager selects from IOTAUTH_GRAPH_FILE")
     parser.add_argument("--validity", help="Optional duration, e.g. 30*min; otherwise use matching graph privilege validity")
     parser.add_argument("--url", help="Manager's A2A base URL")
     parser.add_argument("--json", action="store_true", help="Print result, card assessments and provider reasoning; omit card transport metadata")

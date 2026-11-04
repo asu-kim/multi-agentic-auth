@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -7,13 +7,17 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+ResourceGroup = Annotated[str, Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.-]+$")]
+ResourceGroups = Annotated[list[ResourceGroup], Field(min_length=1)]
+
+
 class DelegationScope(StrictModel):
     resource: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.-]+$")
     validity: str = Field(max_length=32, pattern=r"^[1-9][0-9]{0,8}\*(sec|min|hour|day)$")
 
 
 class DelegationPreferences(StrictModel):
-    resource: str | None = Field(default=None, min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.-]+$")
+    resource: ResourceGroup | ResourceGroups | None = None
     validity: str | None = Field(default=None, max_length=32, pattern=r"^[1-9][0-9]{0,8}\*(sec|min|hour|day)$")
 
 
@@ -46,6 +50,7 @@ class SearchResult(StrictModel):
     selected_agent: SelectedAgent | None = None
     task_result: dict | None = None
     revocation_result: dict | None = None
+    resolved_delegations: list[DelegationScope] = Field(default_factory=list)
     resolved_delegation: DelegationScope | None = None
     resource_selection_reason: str | None = None
     summary: str

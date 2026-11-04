@@ -1,16 +1,24 @@
 from typing import Literal
 from pydantic import Field
-from agents.common.search_models import StrictModel
+from agents.common.search_models import ResourceGroup, StrictModel
+
+
+class ResourceEndpoint(StrictModel):
+    host: str = Field(min_length=1, pattern=r"^\S+$")
+    port: int = Field(ge=1, le=65535)
 
 
 class TaskRequest(StrictModel):
     protocol: Literal["agent-task/v1"] = "agent-task/v1"
     action: Literal["execute"] = "execute"
     query: str = Field(min_length=1, max_length=32000)
-    requested_tool: Literal["establish_secure_communication", "grasp_box"] | None = None
+    delegated_groups: list[ResourceGroup] | None = None
+    resource_endpoints: dict[ResourceGroup, ResourceEndpoint] | None = None
+    requested_tool: Literal["establish_secure_communication", "grasp_box", "deliver_to_safe_zone"] | None = None
 
 
 class TaskAnswer(StrictModel):
+    requires_safe_zone_delivery: bool = Field(default=False, description="True for retrieving an item and delivering it through a gate into a safe or secure zone.")
     status: Literal["completed", "input_required", "declined"]
     output: str = Field(min_length=1)
 

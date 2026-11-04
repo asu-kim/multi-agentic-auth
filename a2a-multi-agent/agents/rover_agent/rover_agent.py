@@ -5,6 +5,9 @@ from agents.common.task_agent import TaskAgent
 
 class RoverAgent(TaskAgent):
     """Publish warehouse rover capabilities and produce simulated task plans."""
+    worker = "ROVER"
+    default_config = "roverEntity"
+
     def __init__(self, llm=None, *, url: str | None = None):
         card = load_agent_card(Path(__file__).with_name("rover_agent_card.json"), url)
         super().__init__(card, llm, instructions=(

@@ -162,7 +162,7 @@ Start the protected resource service and the A2A services as described in that g
 
 At runtime, the manager uses Agent Cards to select a suitable worker. When the user omits a resource, it can select an authorized resource group from the graph or ask for clarification; an omitted delegation duration comes from the matching grant privilege. After confirmed delegation, it dispatches the task. On a `completed` or `simulated` worker result, it calls `revoke_authority`, which sends `revoke <delegatee> <delegated_object>` through `user.js` using the confirmed grant's scope. Unconfirmed revocation is reported as an error. This is active-request cleanup, not recovery after a manager crash, and policy revocation does not itself close existing secure sessions.
 
-The current GUI supports one network and one Auth, TCP entities, permanent distribution keys, and fixed cryptographic defaults. The example manager selects one worker and one resource group per task. Custom agents need compatible A2A cards and task handling, plus appropriate resource adapters; registering a URL alone does not supply these capabilities.
+The current GUI supports one network and one Auth, TCP entities, permanent distribution keys, and fixed cryptographic defaults. The example manager selects one worker and all required resource groups per task. Custom agents need compatible A2A cards and task handling, plus appropriate resource adapters; registering a URL alone does not supply these capabilities.
 
 ## Troubleshooting
 

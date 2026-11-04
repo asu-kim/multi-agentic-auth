@@ -5,6 +5,9 @@ from agents.common.task_agent import TaskAgent
 
 class DroneAgent(TaskAgent):
     """Publish warehouse drone capabilities and produce simulated task plans."""
+    worker = "DRONE"
+    default_config = "droneAgent"
+
     def __init__(self, llm=None, *, url: str | None = None):
         card = load_agent_card(Path(__file__).with_name("drone_agent_card.json"), url)
         super().__init__(card, llm, instructions=(
