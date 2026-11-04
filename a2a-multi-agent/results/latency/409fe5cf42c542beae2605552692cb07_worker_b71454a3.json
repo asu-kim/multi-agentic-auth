@@ -1,0 +1,189 @@
+{
+  "schema": "latency/v1",
+  "trace_id": "409fe5cf42c542beae2605552692cb07",
+  "role": "worker",
+  "started_at": "2026-11-04T23:33:40.043658+00:00",
+  "outcome": "simulated",
+  "total_ms": 26689.057847,
+  "host": "en4234875l",
+  "pid": 3422942,
+  "metadata": {
+    "agent": "Forklift Agent"
+  },
+  "summary": {
+    "gazebo_action": {
+      "count": 3,
+      "ok_count": 3,
+      "total_ms": 25237.304524
+    },
+    "sst_session_key": {
+      "count": 2,
+      "ok_count": 2,
+      "total_ms": 67.72511899999999
+    },
+    "sst_connect": {
+      "count": 2,
+      "ok_count": 2,
+      "total_ms": 289.85809900000004
+    },
+    "sst_handshake": {
+      "count": 2,
+      "ok_count": 2,
+      "total_ms": 222.075357
+    },
+    "sst_command_reply": {
+      "count": 2,
+      "ok_count": 2,
+      "total_ms": 1043.221212
+    },
+    "sst_resource_command": {
+      "count": 2,
+      "ok_count": 2,
+      "total_ms": 1444.677795
+    },
+    "worker_execution": {
+      "count": 1,
+      "ok_count": 1,
+      "total_ms": 26689.043958
+    }
+  },
+  "events": [
+    {
+      "name": "gazebo_action",
+      "duration_ms": 4420.174224,
+      "start_offset_ms": 0.255247,
+      "status": "ok",
+      "attributes": {
+        "action": "begin"
+      }
+    },
+    {
+      "name": "sst_session_key",
+      "duration_ms": 41.088522,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "TargetItem",
+        "command": "RETRIEVE_ITEM"
+      }
+    },
+    {
+      "name": "sst_connect",
+      "duration_ms": 199.72712,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "TargetItem",
+        "command": "RETRIEVE_ITEM"
+      }
+    },
+    {
+      "name": "sst_handshake",
+      "duration_ms": 158.538878,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "TargetItem",
+        "command": "RETRIEVE_ITEM"
+      }
+    },
+    {
+      "name": "sst_command_reply",
+      "duration_ms": 15.568636,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "TargetItem",
+        "command": "RETRIEVE_ITEM"
+      }
+    },
+    {
+      "name": "sst_resource_command",
+      "duration_ms": 271.446188,
+      "start_offset_ms": 4425.923045,
+      "status": "ok",
+      "attributes": {
+        "resource": "TargetItem",
+        "command": "RETRIEVE_ITEM"
+      }
+    },
+    {
+      "name": "gazebo_action",
+      "duration_ms": 6953.860551,
+      "start_offset_ms": 4697.756322,
+      "status": "ok",
+      "attributes": {
+        "action": "pickup"
+      }
+    },
+    {
+      "name": "sst_session_key",
+      "duration_ms": 26.636597,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "Gate",
+        "command": "OPEN_GATE"
+      }
+    },
+    {
+      "name": "sst_connect",
+      "duration_ms": 90.130979,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "Gate",
+        "command": "OPEN_GATE"
+      }
+    },
+    {
+      "name": "sst_handshake",
+      "duration_ms": 63.536479,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "Gate",
+        "command": "OPEN_GATE"
+      }
+    },
+    {
+      "name": "sst_command_reply",
+      "duration_ms": 1027.652576,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "Gate",
+        "command": "OPEN_GATE"
+      }
+    },
+    {
+      "name": "sst_resource_command",
+      "duration_ms": 1173.231607,
+      "start_offset_ms": 11652.083965,
+      "status": "ok",
+      "attributes": {
+        "resource": "Gate",
+        "command": "OPEN_GATE"
+      }
+    },
+    {
+      "name": "gazebo_action",
+      "duration_ms": 13863.269749,
+      "start_offset_ms": 12825.692661,
+      "status": "ok",
+      "attributes": {
+        "action": "finish"
+      }
+    },
+    {
+      "name": "worker_execution",
+      "duration_ms": 26689.043958,
+      "start_offset_ms": 0.008699,
+      "status": "ok",
+      "attributes": {}
+    }
+  ],
+  "worker_traces": [],
+  "warnings": [],
+  "file": "/home/sunyoung/multi-agentic-auth/a2a-multi-agent/results/latency/409fe5cf42c542beae2605552692cb07_worker_b71454a3.json"
+}
