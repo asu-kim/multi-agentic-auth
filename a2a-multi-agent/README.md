@@ -56,13 +56,36 @@ Each secure command uses a fresh Node client. Credentials stay in the worker's S
 
 ## Setup
 
-Use Python 3.12 or later and your existing virtual environment. Run these commands from `a2a-multi-agent`.
+Set up a separate Python environment on each machine that runs agents (the server and robot). The project requires Python 3.12 or later, as declared in `pyproject.toml`. The commands below assume `python3.12` is installed; a newer Python interpreter can be used instead. If it is unavailable, install a compatible interpreter before continuing.
+
+First-time setup on each agent host:
 
 ```bash
+cd ~/multi-agentic-auth/a2a-multi-agent
+python3.12 --version
+python3.12 -m venv .venv
+source .venv/bin/activate
 python -m pip install -e .
-# First-time setup only.
 test -f .env || cp .env.example .env
 ```
+
+`python3.12 -m venv .venv` creates the environment. `source .venv/bin/activate` activates it in the current terminal. `pip install -e .` installs the package and all Python dependencies listed in `pyproject.toml`, including A2A SDK, HTTPX, Pydantic, python-dotenv, and Uvicorn. An existing environment with Python 3.12+ can be activated and used instead; do not copy a virtual environment between machines.
+
+In each new terminal used to launch an agent:
+
+```bash
+cd ~/multi-agentic-auth/a2a-multi-agent
+source .venv/bin/activate
+```
+
+The Manager and workers also invoke Node SST clients. With Node.js and npm installed, install their dependencies on each agent host:
+
+```bash
+cd ~/multi-agentic-auth/iotauth/entity/node
+npm install
+```
+
+The Mac's `warehouse_bridge.py` uses the Python standard library and does not require the agent environment. Gate and TargetItem need the Node dependencies above on the Mac. Gazebo installation is described in the simulation guide.
 
 Configure these settings in `.env`.
 

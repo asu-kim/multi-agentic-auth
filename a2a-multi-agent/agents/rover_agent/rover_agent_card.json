@@ -19,7 +19,7 @@
     {
       "id": "reach_bottom_shelf",
       "name": "Reach bottom shelf",
-      "description": "Model access to a bottom-shelf storage location for retrieval in the warehouse scenario. Protected item retrieval requires valid SST authorization.",
+      "description": "Model access to a bottom-shelf storage location for retrieval.",
       "tags": [
         "reach_bottom_shelf"
       ],

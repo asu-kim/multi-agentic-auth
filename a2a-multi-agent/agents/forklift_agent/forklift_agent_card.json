@@ -19,7 +19,7 @@
     {
       "id": "reach_middle_shelf",
       "name": "Reach middle shelf",
-      "description": "Model access to a middle-shelf storage location for retrieval in the warehouse scenario. Protected item retrieval requires valid SST authorization.",
+      "description": "Model access to a middle-shelf storage location for retrieval.",
       "tags": [
         "reach_middle_shelf"
       ],
@@ -30,7 +30,7 @@
     {
       "id": "carry_heavy_items",
       "name": "Carry heavy items",
-      "description": "Model transport of heavy items in the warehouse scenario. No numerical payload limit is specified; actual execution depends on an appropriate hardware implementation and valid access permission.",
+      "description": "Model transport of heavy items.",
       "tags": [
         "carry_heavy_items"
       ],
@@ -41,7 +41,7 @@
     {
       "id": "deliver_to_safe_zone",
       "name": "Deliver to secure zone through a gate",
-      "description": "Execute the shared simulated warehouse delivery workflow. Approach and retrieve an authorized item, carry it to the gate, request gate opening, traverse the open gate, and place the item in the secure zone. This skill includes gate traversal and delivery. It requires valid SST access to both the item and gate. The agent's shelf-reach and payload limits still apply.",
+      "description": "Execute the simulated warehouse delivery workflow. Approach and retrieve an authorized item, carry it to the gate, request gate opening, traverse the open gate, and place the item in the secure zone. This skill includes gate traversal and delivery. It requires valid SST access to both the item and gate. The agent's shelf-reach and payload limits still apply.",
       "tags": [
         "deliver_to_safe_zone",
         "delivery",

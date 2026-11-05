@@ -12,7 +12,33 @@ The robot address comes from the supplied Tailscale screenshot. Confirm that it 
 
 ## 1. Install the worker code
 
-Put the current repository at `~/multi-agentic-auth` on the robot. Use Python 3.12 or later in a separate virtual environment, and a working Node.js runtime. Run `python -m pip install -e .` from `a2a-multi-agent` and `npm install` from `iotauth/entity/node`. The robot does not need Gazebo or a local LLM for the explicit `deliver_to_safe_zone` action. The tunnel below also makes the server LLM available for natural-language requests.
+Put the current repository at `~/multi-agentic-auth` on the robot. Set up Python 3.12 or later and a working Node.js/npm runtime. Use an isolated environment for this agent application. The full setup explanation is in [Setup](../README.md#setup).
+
+Run once on the robot (the server needs its own environment too):
+
+```bash
+cd ~/multi-agentic-auth/a2a-multi-agent
+python3.12 --version
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
+test -f .env || cp .env.example .env
+
+cd ~/multi-agentic-auth/iotauth/entity/node
+npm install
+```
+
+Use an installed Python version of at least 3.12. If `python3.12` is missing, install a compatible interpreter first. If you already have a suitable virtual environment, activate it instead of creating another one.
+
+For every new robot terminal, activate the environment before launching Forklift:
+
+```bash
+cd ~/multi-agentic-auth/a2a-multi-agent
+source .venv/bin/activate
+python -m agents.forklift_agent --host 0.0.0.0
+```
+
+Start the agent after completing the credentials, tunnels, and environment settings below. The robot does not need Gazebo or a local LLM for the explicit `deliver_to_safe_zone` action. The tunnel below also makes the server LLM available for natural-language requests.
 
 ## 2. Copy the Forklift credentials
 
@@ -62,7 +88,7 @@ ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
   -R 127.0.0.1:21100:127.0.0.1:21100 \
   -R 127.0.0.1:21101:127.0.0.1:21101 \
   -R 127.0.0.1:21200:127.0.0.1:21200 \
-  ROBOT_USER@100.101.153.11
+  jetson@100.101.153.11
 ```
 
 The robot's local ports reach the Mac resources and bridge. Robot ports 21900 and 11435 reach the server through the Mac's local forwards. The server's port 10003 reaches the robot's A2A service through the Mac. These are separate bidirectional connections; one SSH direction alone does not expose every service.
@@ -97,6 +123,13 @@ On the server:
 - In the graph used by Manager, Gate and TargetItem endpoints must be `127.0.0.1:21100` and `127.0.0.1:21101`. Manager passes these endpoints to the robot, overriding the worker's fallback list.
 
 On the Mac, Gate and TargetItem must listen on local ports 21100/21101 reachable via `127.0.0.1`. Use that host in their `listeningServerInfo` settings. Keep Gazebo and the bridge running as before. Resource Auth connections can use Mac port 21900.
+
+
+```
+python -m agents.manager_agent
+python -m agents.drone_agent
+python -m agents.rover_agent
+```
 
 ## 5. Run on the robot's monitor
 

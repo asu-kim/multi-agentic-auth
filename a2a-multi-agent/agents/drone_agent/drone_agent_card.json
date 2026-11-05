@@ -19,7 +19,7 @@
     {
       "id": "reach_top_shelf",
       "name": "Reach top shelf",
-      "description": "Model access to a top-shelf storage location for retrieval in the warehouse scenario. Protected item retrieval requires valid SST authorization.",
+      "description": "Model access to a top-shelf storage location for retrieval.",
       "tags": [
         "reach_top_shelf"
       ],
