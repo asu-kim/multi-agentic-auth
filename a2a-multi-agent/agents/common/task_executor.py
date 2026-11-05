@@ -7,6 +7,7 @@ from a2a.types import InvalidParamsError, UnsupportedOperationError
 from a2a.utils.errors import ServerError
 from pydantic import ValidationError
 
+from agents.common.latency import capture_dispatch_timestamp
 from agents.common.a2a_client import data_message, read_data
 from agents.common.task_models import TaskRequest, TaskResult
 
@@ -18,6 +19,7 @@ class TaskExecutor(AgentExecutor):
         self.agent = agent
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
+        received_timing = capture_dispatch_timestamp()
         if context.message is None:
             raise ServerError(InvalidParamsError(message="A message is required"))
         data = read_data(context.message)
@@ -25,6 +27,7 @@ class TaskExecutor(AgentExecutor):
             request = TaskRequest.model_validate(data if data is not None else {"query": context.get_user_input()})
         except ValidationError as exc:
             raise ServerError(InvalidParamsError(message=f"Invalid task request: {exc}")) from exc
+        request._received_timing = received_timing
         try:
             result = await self.agent.execute_task(request)
         except Exception as exc:

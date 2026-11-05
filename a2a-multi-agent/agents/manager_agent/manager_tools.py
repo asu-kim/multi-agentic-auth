@@ -317,6 +317,13 @@ class ManagerTools:
             worker_trace = self.task_result.get("latency")
             if trace is not None and isinstance(worker_trace, dict):
                 trace.worker_traces.append(worker_trace)
+                # Copy the worker's receipt measurement into the Manager JSON.
+                # This duration ends before any worker task execution begins.
+                for event in worker_trace.get("events", []):
+                    if event.get("name") == "a2a_task_delivery":
+                        delivery = deepcopy(event)
+                        delivery["attributes"]["agent_url"] = url
+                        trace.events.append(delivery)
                 worker_ms = worker_trace.get("total_ms")
                 if isinstance(worker_ms, (int, float)) and 0 <= worker_ms <= round_trip_ms:
                     # Includes request/response transport, queues and serialization.
