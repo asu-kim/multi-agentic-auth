@@ -1,0 +1,709 @@
+{
+  "schema": "latency/v1",
+  "trace_id": "6ac76ea4f6a7429f9365f303f1523e64",
+  "role": "manager",
+  "started_at": "2026-11-05T22:51:12.163361+00:00",
+  "outcome": "found",
+  "total_ms": 39930.368327,
+  "host": "en4234875l",
+  "pid": 3543714,
+  "metadata": {
+    "agent": "Manager Agent"
+  },
+  "summary": {
+    "manager_llm": {
+      "count": 12,
+      "ok_count": 12,
+      "measured_count": 12,
+      "total_ms": 11020.59377
+    },
+    "a2a_card_discovery": {
+      "count": 3,
+      "ok_count": 3,
+      "measured_count": 3,
+      "total_ms": 226.70211899999998
+    },
+    "manager_tool": {
+      "count": 11,
+      "ok_count": 11,
+      "measured_count": 11,
+      "total_ms": 28905.353182
+    },
+    "agent_selection": {
+      "count": 1,
+      "ok_count": 1,
+      "measured_count": 1,
+      "total_ms": 5555.327735
+    },
+    "iotauth_node_startup": {
+      "count": 4,
+      "ok_count": 4,
+      "measured_count": 4,
+      "total_ms": 165.116706
+    },
+    "auth_privilege_command_round_trip": {
+      "count": 4,
+      "ok_count": 4,
+      "measured_count": 4,
+      "total_ms": 110.65888999999999
+    },
+    "delegation": {
+      "count": 2,
+      "ok_count": 2,
+      "measured_count": 2,
+      "total_ms": 155.932459
+    },
+    "a2a_task_round_trip": {
+      "count": 1,
+      "ok_count": 1,
+      "measured_count": 1,
+      "total_ms": 28385.888771
+    },
+    "a2a_task_delivery": {
+      "count": 1,
+      "ok_count": 0,
+      "measured_count": 0,
+      "total_ms": null
+    },
+    "a2a_task_overhead_estimate": {
+      "count": 1,
+      "ok_count": 0,
+      "measured_count": 1,
+      "total_ms": 219.92644499999733
+    },
+    "revocation": {
+      "count": 2,
+      "ok_count": 2,
+      "measured_count": 2,
+      "total_ms": 135.730102
+    },
+    "manager_execution": {
+      "count": 1,
+      "ok_count": 1,
+      "measured_count": 1,
+      "total_ms": 39930.357662
+    }
+  },
+  "events": [
+    {
+      "name": "manager_llm",
+      "duration_ms": 1445.62566,
+      "start_offset_ms": 0.248278,
+      "status": "ok",
+      "attributes": {
+        "turn": 1
+      }
+    },
+    {
+      "name": "a2a_card_discovery",
+      "duration_ms": 1.930323,
+      "start_offset_ms": 1445.976356,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10001"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 1.968268,
+      "start_offset_ms": 1445.970802,
+      "status": "ok",
+      "attributes": {
+        "tool": "discover_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 1274.957413,
+      "start_offset_ms": 1448.122389,
+      "status": "ok",
+      "attributes": {
+        "turn": 2
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.012361,
+      "start_offset_ms": 2723.192449,
+      "status": "ok",
+      "attributes": {
+        "tool": "set_requirements"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 703.892205,
+      "start_offset_ms": 2723.435582,
+      "status": "ok",
+      "attributes": {
+        "turn": 3
+      }
+    },
+    {
+      "name": "a2a_card_discovery",
+      "duration_ms": 2.556815,
+      "start_offset_ms": 3427.433326,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10002"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 2.59814,
+      "start_offset_ms": 3427.428017,
+      "status": "ok",
+      "attributes": {
+        "tool": "discover_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 694.102363,
+      "start_offset_ms": 3430.267964,
+      "status": "ok",
+      "attributes": {
+        "turn": 4
+      }
+    },
+    {
+      "name": "a2a_card_discovery",
+      "duration_ms": 222.214981,
+      "start_offset_ms": 4124.478381,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10003"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 222.259044,
+      "start_offset_ms": 4124.472459,
+      "status": "ok",
+      "attributes": {
+        "tool": "discover_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 1208.204666,
+      "start_offset_ms": 4346.989701,
+      "status": "ok",
+      "attributes": {
+        "turn": 5
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.055086,
+      "start_offset_ms": 5555.305054,
+      "status": "ok",
+      "attributes": {
+        "tool": "assess_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 609.03196,
+      "start_offset_ms": 5555.586991,
+      "status": "ok",
+      "attributes": {
+        "turn": 6
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.372038,
+      "start_offset_ms": 6164.716554,
+      "status": "ok",
+      "attributes": {
+        "tool": "list_resources"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 751.296806,
+      "start_offset_ms": 6165.338341,
+      "status": "ok",
+      "attributes": {
+        "turn": 7
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.020403,
+      "start_offset_ms": 6916.748832,
+      "status": "ok",
+      "attributes": {
+        "tool": "select_resource"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 923.852671,
+      "start_offset_ms": 6917.005103,
+      "status": "ok",
+      "attributes": {
+        "turn": 8
+      }
+    },
+    {
+      "name": "agent_selection",
+      "duration_ms": 5555.327735,
+      "start_offset_ms": 0.0,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10003"
+      }
+    },
+    {
+      "name": "iotauth_node_startup",
+      "duration_ms": 39.448318,
+      "start_offset_ms": 7841.176644,
+      "status": "ok",
+      "attributes": {
+        "action": "DelegationGrant",
+        "resource": "Gate"
+      }
+    },
+    {
+      "name": "auth_privilege_command_round_trip",
+      "duration_ms": 34.346028,
+      "start_offset_ms": 7880.617981,
+      "status": "ok",
+      "attributes": {
+        "action": "DelegationGrant",
+        "resource": "Gate"
+      }
+    },
+    {
+      "name": "delegation",
+      "duration_ms": 77.378165,
+      "start_offset_ms": 7841.148815,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10003",
+        "resource": "Gate"
+      }
+    },
+    {
+      "name": "iotauth_node_startup",
+      "duration_ms": 42.877722,
+      "start_offset_ms": 7918.645888,
+      "status": "ok",
+      "attributes": {
+        "action": "DelegationGrant",
+        "resource": "TargetItem"
+      }
+    },
+    {
+      "name": "auth_privilege_command_round_trip",
+      "duration_ms": 32.350854,
+      "start_offset_ms": 7961.518531,
+      "status": "ok",
+      "attributes": {
+        "action": "DelegationGrant",
+        "resource": "TargetItem"
+      }
+    },
+    {
+      "name": "delegation",
+      "duration_ms": 78.554294,
+      "start_offset_ms": 7918.545671,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10003",
+        "resource": "TargetItem"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 156.170144,
+      "start_offset_ms": 7840.947777,
+      "status": "ok",
+      "attributes": {
+        "tool": "delegate_authority"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 740.073924,
+      "start_offset_ms": 7997.512233,
+      "status": "ok",
+      "attributes": {
+        "turn": 9
+      }
+    },
+    {
+      "name": "a2a_task_round_trip",
+      "duration_ms": 28385.888771,
+      "start_offset_ms": 8737.788429,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10003"
+      }
+    },
+    {
+      "name": "a2a_task_delivery",
+      "duration_ms": null,
+      "status": "clock_sync_unverified",
+      "attributes": {
+        "boundary": "a2a_send_to_executor_entry",
+        "sender_unix_ns": 1793919080901255495,
+        "receiver_unix_ns": 1793919080961673955,
+        "clock_basis": "wall_clock",
+        "wall_clock_delta_ms": 60.41846,
+        "clock_sync_assumed": false,
+        "agent_url": "http://127.0.0.1:10003"
+      }
+    },
+    {
+      "name": "a2a_task_overhead_estimate",
+      "duration_ms": 219.92644499999733,
+      "status": "estimated",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10003"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 28386.022201,
+      "start_offset_ms": 8737.692579,
+      "status": "ok",
+      "attributes": {
+        "tool": "dispatch_task"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 847.133465,
+      "start_offset_ms": 37123.931521,
+      "status": "ok",
+      "attributes": {
+        "turn": 10
+      }
+    },
+    {
+      "name": "iotauth_node_startup",
+      "duration_ms": 37.571125,
+      "start_offset_ms": 37971.36228,
+      "status": "ok",
+      "attributes": {
+        "action": "DelegationRevoke",
+        "resource": "Gate"
+      }
+    },
+    {
+      "name": "auth_privilege_command_round_trip",
+      "duration_ms": 26.942403,
+      "start_offset_ms": 38008.925606,
+      "status": "ok",
+      "attributes": {
+        "action": "DelegationRevoke",
+        "resource": "Gate"
+      }
+    },
+    {
+      "name": "revocation",
+      "duration_ms": 69.038789,
+      "start_offset_ms": 37971.170546,
+      "status": "ok",
+      "attributes": {
+        "resource": "Gate",
+        "subject": "ForkliftAgent"
+      }
+    },
+    {
+      "name": "iotauth_node_startup",
+      "duration_ms": 45.219541,
+      "start_offset_ms": 38040.700536,
+      "status": "ok",
+      "attributes": {
+        "action": "DelegationRevoke",
+        "resource": "TargetItem"
+      }
+    },
+    {
+      "name": "auth_privilege_command_round_trip",
+      "duration_ms": 17.019605,
+      "start_offset_ms": 38085.917862,
+      "status": "ok",
+      "attributes": {
+        "action": "DelegationRevoke",
+        "resource": "TargetItem"
+      }
+    },
+    {
+      "name": "revocation",
+      "duration_ms": 66.691313,
+      "start_offset_ms": 38040.236804,
+      "status": "ok",
+      "attributes": {
+        "resource": "TargetItem",
+        "subject": "ForkliftAgent"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 135.786237,
+      "start_offset_ms": 37971.160672,
+      "status": "ok",
+      "attributes": {
+        "tool": "revoke_authority"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 1073.092981,
+      "start_offset_ms": 38107.326797,
+      "status": "ok",
+      "attributes": {
+        "turn": 11
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 749.329656,
+      "start_offset_ms": 39180.736991,
+      "status": "ok",
+      "attributes": {
+        "turn": 12
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.08926,
+      "start_offset_ms": 39930.171979,
+      "status": "ok",
+      "attributes": {
+        "tool": "finish_search"
+      }
+    },
+    {
+      "name": "manager_execution",
+      "duration_ms": 39930.357662,
+      "start_offset_ms": 0.007577,
+      "status": "ok",
+      "attributes": {}
+    }
+  ],
+  "worker_traces": [
+    {
+      "schema": "latency/v1",
+      "trace_id": "6ac76ea4f6a7429f9365f303f1523e64",
+      "role": "worker",
+      "started_at": "2026-11-05T22:51:20.961863+00:00",
+      "outcome": "simulated",
+      "total_ms": 28165.971108,
+      "host": "yahboom",
+      "pid": 247018,
+      "metadata": {
+        "agent": "Forklift Agent"
+      },
+      "summary": {
+        "a2a_task_delivery": {
+          "count": 1,
+          "ok_count": 0,
+          "measured_count": 0,
+          "total_ms": null
+        },
+        "gazebo_action": {
+          "count": 3,
+          "ok_count": 3,
+          "measured_count": 3,
+          "total_ms": 26107.731345
+        },
+        "sst_session_key": {
+          "count": 2,
+          "ok_count": 2,
+          "measured_count": 2,
+          "total_ms": 135.83987
+        },
+        "sst_connect": {
+          "count": 2,
+          "ok_count": 2,
+          "measured_count": 2,
+          "total_ms": 487.370406
+        },
+        "sst_handshake": {
+          "count": 2,
+          "ok_count": 2,
+          "measured_count": 2,
+          "total_ms": 350.934295
+        },
+        "sst_command_reply": {
+          "count": 2,
+          "ok_count": 2,
+          "measured_count": 2,
+          "total_ms": 1280.908082
+        },
+        "sst_resource_command": {
+          "count": 2,
+          "ok_count": 2,
+          "measured_count": 2,
+          "total_ms": 2018.454032
+        },
+        "worker_execution": {
+          "count": 1,
+          "ok_count": 1,
+          "measured_count": 1,
+          "total_ms": 28165.884898
+        }
+      },
+      "events": [
+        {
+          "name": "a2a_task_delivery",
+          "duration_ms": null,
+          "status": "clock_sync_unverified",
+          "attributes": {
+            "boundary": "a2a_send_to_executor_entry",
+            "sender_unix_ns": 1793919080901255495,
+            "receiver_unix_ns": 1793919080961673955,
+            "clock_basis": "wall_clock",
+            "wall_clock_delta_ms": 60.41846,
+            "clock_sync_assumed": false
+          }
+        },
+        {
+          "name": "gazebo_action",
+          "duration_ms": 4710.30895,
+          "start_offset_ms": 1.123008,
+          "status": "ok",
+          "attributes": {
+            "action": "begin"
+          }
+        },
+        {
+          "name": "sst_session_key",
+          "duration_ms": 77.87446,
+          "status": "ok",
+          "source": "node",
+          "attributes": {
+            "resource": "TargetItem",
+            "command": "RETRIEVE_ITEM"
+          }
+        },
+        {
+          "name": "sst_connect",
+          "duration_ms": 260.685905,
+          "status": "ok",
+          "source": "node",
+          "attributes": {
+            "resource": "TargetItem",
+            "command": "RETRIEVE_ITEM"
+          }
+        },
+        {
+          "name": "sst_handshake",
+          "duration_ms": 182.506924,
+          "status": "ok",
+          "source": "node",
+          "attributes": {
+            "resource": "TargetItem",
+            "command": "RETRIEVE_ITEM"
+          }
+        },
+        {
+          "name": "sst_command_reply",
+          "duration_ms": 232.706774,
+          "status": "ok",
+          "source": "node",
+          "attributes": {
+            "resource": "TargetItem",
+            "command": "RETRIEVE_ITEM"
+          }
+        },
+        {
+          "name": "sst_resource_command",
+          "duration_ms": 619.895713,
+          "start_offset_ms": 4712.362896,
+          "status": "ok",
+          "attributes": {
+            "resource": "TargetItem",
+            "command": "RETRIEVE_ITEM"
+          }
+        },
+        {
+          "name": "gazebo_action",
+          "duration_ms": 7209.726643,
+          "start_offset_ms": 5350.027912,
+          "status": "ok",
+          "attributes": {
+            "action": "pickup"
+          }
+        },
+        {
+          "name": "sst_session_key",
+          "duration_ms": 57.96541,
+          "status": "ok",
+          "source": "node",
+          "attributes": {
+            "resource": "Gate",
+            "command": "OPEN_GATE"
+          }
+        },
+        {
+          "name": "sst_connect",
+          "duration_ms": 226.684501,
+          "status": "ok",
+          "source": "node",
+          "attributes": {
+            "resource": "Gate",
+            "command": "OPEN_GATE"
+          }
+        },
+        {
+          "name": "sst_handshake",
+          "duration_ms": 168.427371,
+          "status": "ok",
+          "source": "node",
+          "attributes": {
+            "resource": "Gate",
+            "command": "OPEN_GATE"
+          }
+        },
+        {
+          "name": "sst_command_reply",
+          "duration_ms": 1048.201308,
+          "status": "ok",
+          "source": "node",
+          "attributes": {
+            "resource": "Gate",
+            "command": "OPEN_GATE"
+          }
+        },
+        {
+          "name": "sst_resource_command",
+          "duration_ms": 1398.558319,
+          "start_offset_ms": 12560.749559,
+          "status": "ok",
+          "attributes": {
+            "resource": "Gate",
+            "command": "OPEN_GATE"
+          }
+        },
+        {
+          "name": "gazebo_action",
+          "duration_ms": 14187.695752,
+          "start_offset_ms": 13977.818735,
+          "status": "ok",
+          "attributes": {
+            "action": "finish"
+          }
+        },
+        {
+          "name": "worker_execution",
+          "duration_ms": 28165.884898,
+          "start_offset_ms": 0.073698,
+          "status": "ok",
+          "attributes": {}
+        }
+      ],
+      "worker_traces": [],
+      "warnings": [],
+      "file": "/home/jetson/multi-agentic-auth/a2a-multi-agent/results/latency/6ac76ea4f6a7429f9365f303f1523e64_worker_b427e12d.json"
+    }
+  ],
+  "warnings": [],
+  "file": "/home/sunyoung/multi-agentic-auth/a2a-multi-agent/results/latency/6ac76ea4f6a7429f9365f303f1523e64_manager_8245ac02.json"
+}

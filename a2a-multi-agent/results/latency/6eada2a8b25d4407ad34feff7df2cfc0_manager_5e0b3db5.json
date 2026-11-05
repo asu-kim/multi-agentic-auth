@@ -1,0 +1,330 @@
+{
+  "schema": "latency/v1",
+  "trace_id": "6eada2a8b25d4407ad34feff7df2cfc0",
+  "role": "manager",
+  "started_at": "2026-11-05T23:02:46.316026+00:00",
+  "outcome": "error",
+  "total_ms": 11948.939009,
+  "host": "en4234875l",
+  "pid": 3543714,
+  "metadata": {
+    "agent": "Manager Agent"
+  },
+  "summary": {
+    "manager_llm": {
+      "count": 11,
+      "ok_count": 11,
+      "measured_count": 11,
+      "total_ms": 11685.449141999998
+    },
+    "a2a_card_discovery": {
+      "count": 3,
+      "ok_count": 3,
+      "measured_count": 3,
+      "total_ms": 166.265861
+    },
+    "manager_tool": {
+      "count": 10,
+      "ok_count": 7,
+      "measured_count": 10,
+      "total_ms": 258.78874299999995
+    },
+    "agent_selection": {
+      "count": 1,
+      "ok_count": 1,
+      "measured_count": 1,
+      "total_ms": 5356.097702
+    },
+    "iotauth_node_startup": {
+      "count": 1,
+      "ok_count": 1,
+      "measured_count": 1,
+      "total_ms": 40.774051
+    },
+    "auth_privilege_command_round_trip": {
+      "count": 1,
+      "ok_count": 0,
+      "measured_count": 1,
+      "total_ms": 46.971645
+    },
+    "delegation": {
+      "count": 1,
+      "ok_count": 0,
+      "measured_count": 1,
+      "total_ms": 91.524052
+    },
+    "manager_execution": {
+      "count": 1,
+      "ok_count": 0,
+      "measured_count": 1,
+      "total_ms": 11948.931031
+    }
+  },
+  "events": [
+    {
+      "name": "manager_llm",
+      "duration_ms": 1325.817294,
+      "start_offset_ms": 0.157367,
+      "status": "ok",
+      "attributes": {
+        "turn": 1
+      }
+    },
+    {
+      "name": "a2a_card_discovery",
+      "duration_ms": 1.957764,
+      "start_offset_ms": 1326.077433,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10001"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 1.992095,
+      "start_offset_ms": 1326.072419,
+      "status": "ok",
+      "attributes": {
+        "tool": "discover_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 1274.045225,
+      "start_offset_ms": 1328.253353,
+      "status": "ok",
+      "attributes": {
+        "turn": 2
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.012639,
+      "start_offset_ms": 2602.40811,
+      "status": "ok",
+      "attributes": {
+        "tool": "set_requirements"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 698.975756,
+      "start_offset_ms": 2602.656167,
+      "status": "ok",
+      "attributes": {
+        "turn": 3
+      }
+    },
+    {
+      "name": "a2a_card_discovery",
+      "duration_ms": 3.452371,
+      "start_offset_ms": 3301.742954,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10002"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 3.500967,
+      "start_offset_ms": 3301.737533,
+      "status": "ok",
+      "attributes": {
+        "tool": "discover_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 678.304845,
+      "start_offset_ms": 3305.461759,
+      "status": "ok",
+      "attributes": {
+        "turn": 4
+      }
+    },
+    {
+      "name": "a2a_card_discovery",
+      "duration_ms": 160.855726,
+      "start_offset_ms": 3983.872763,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10003"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 160.944202,
+      "start_offset_ms": 3983.866968,
+      "status": "ok",
+      "attributes": {
+        "tool": "discover_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 1210.754579,
+      "start_offset_ms": 4145.218097,
+      "status": "ok",
+      "attributes": {
+        "turn": 5
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.052821,
+      "start_offset_ms": 5356.075194,
+      "status": "ok",
+      "attributes": {
+        "tool": "assess_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 591.116754,
+      "start_offset_ms": 5356.352285,
+      "status": "ok",
+      "attributes": {
+        "turn": 6
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.3781,
+      "start_offset_ms": 5947.567533,
+      "status": "ok",
+      "attributes": {
+        "tool": "list_resources"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 738.026144,
+      "start_offset_ms": 5948.17836,
+      "status": "ok",
+      "attributes": {
+        "turn": 7
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.051796,
+      "start_offset_ms": 6686.534004,
+      "status": "ok",
+      "attributes": {
+        "tool": "select_resource"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 807.453288,
+      "start_offset_ms": 6687.174911,
+      "status": "ok",
+      "attributes": {
+        "turn": 8
+      }
+    },
+    {
+      "name": "agent_selection",
+      "duration_ms": 5356.097702,
+      "start_offset_ms": 0.0,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10003"
+      }
+    },
+    {
+      "name": "iotauth_node_startup",
+      "duration_ms": 40.774051,
+      "start_offset_ms": 7494.951934,
+      "status": "ok",
+      "attributes": {
+        "action": "DelegationGrant",
+        "resource": "Gate"
+      }
+    },
+    {
+      "name": "auth_privilege_command_round_trip",
+      "duration_ms": 46.971645,
+      "start_offset_ms": 7535.72194,
+      "status": "error",
+      "attributes": {
+        "action": "DelegationGrant",
+        "resource": "Gate"
+      }
+    },
+    {
+      "name": "delegation",
+      "duration_ms": 91.524052,
+      "start_offset_ms": 7494.924742,
+      "status": "error",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10003",
+        "resource": "Gate"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 91.751306,
+      "start_offset_ms": 7494.727651,
+      "status": "error",
+      "attributes": {
+        "tool": "delegate_authority"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 679.089867,
+      "start_offset_ms": 7586.98228,
+      "status": "ok",
+      "attributes": {
+        "turn": 9
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.03293,
+      "start_offset_ms": 8266.175529,
+      "status": "error",
+      "attributes": {
+        "tool": "finish_search"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 1359.005395,
+      "start_offset_ms": 8266.466625,
+      "status": "ok",
+      "attributes": {
+        "turn": 10
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 2322.859995,
+      "start_offset_ms": 9625.815804,
+      "status": "ok",
+      "attributes": {
+        "turn": 11
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.071887,
+      "start_offset_ms": 11948.786611,
+      "status": "error",
+      "attributes": {
+        "tool": "finish_search"
+      }
+    },
+    {
+      "name": "manager_execution",
+      "duration_ms": 11948.931031,
+      "start_offset_ms": 0.005176,
+      "status": "error",
+      "attributes": {}
+    }
+  ],
+  "worker_traces": [],
+  "warnings": [],
+  "file": "/home/sunyoung/multi-agentic-auth/a2a-multi-agent/results/latency/6eada2a8b25d4407ad34feff7df2cfc0_manager_5e0b3db5.json"
+}

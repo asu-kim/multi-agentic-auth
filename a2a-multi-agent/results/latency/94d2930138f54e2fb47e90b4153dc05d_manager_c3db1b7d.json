@@ -1,0 +1,312 @@
+{
+  "schema": "latency/v1",
+  "trace_id": "94d2930138f54e2fb47e90b4153dc05d",
+  "role": "manager",
+  "started_at": "2026-11-05T22:40:47.335100+00:00",
+  "outcome": "error",
+  "total_ms": 13373.553497,
+  "host": "en4234875l",
+  "pid": 3542934,
+  "metadata": {
+    "agent": "Manager Agent"
+  },
+  "summary": {
+    "manager_llm": {
+      "count": 16,
+      "ok_count": 16,
+      "measured_count": 16,
+      "total_ms": 13117.882259999998
+    },
+    "a2a_card_discovery": {
+      "count": 3,
+      "ok_count": 3,
+      "measured_count": 3,
+      "total_ms": 252.234893
+    },
+    "manager_tool": {
+      "count": 10,
+      "ok_count": 8,
+      "measured_count": 10,
+      "total_ms": 252.63334700000001
+    },
+    "manager_execution": {
+      "count": 1,
+      "ok_count": 0,
+      "measured_count": 1,
+      "total_ms": 13373.542025
+    }
+  },
+  "events": [
+    {
+      "name": "manager_llm",
+      "duration_ms": 1637.80636,
+      "start_offset_ms": 0.203403,
+      "status": "ok",
+      "attributes": {
+        "turn": 1
+      }
+    },
+    {
+      "name": "a2a_card_discovery",
+      "duration_ms": 2.315279,
+      "start_offset_ms": 1638.126257,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10001"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 2.356896,
+      "start_offset_ms": 1638.12054,
+      "status": "ok",
+      "attributes": {
+        "tool": "discover_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 1517.205068,
+      "start_offset_ms": 1640.515618,
+      "status": "ok",
+      "attributes": {
+        "turn": 2
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.013032,
+      "start_offset_ms": 3157.834522,
+      "status": "ok",
+      "attributes": {
+        "tool": "set_requirements"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 1058.449602,
+      "start_offset_ms": 3157.869775,
+      "status": "ok",
+      "attributes": {
+        "turn": 3
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.04831,
+      "start_offset_ms": 4216.415878,
+      "status": "ok",
+      "attributes": {
+        "tool": "assess_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 522.45245,
+      "start_offset_ms": 4216.484725,
+      "status": "ok",
+      "attributes": {
+        "turn": 4
+      }
+    },
+    {
+      "name": "a2a_card_discovery",
+      "duration_ms": 2.028843,
+      "start_offset_ms": 4739.033529,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10002"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 2.0671,
+      "start_offset_ms": 4739.028537,
+      "status": "ok",
+      "attributes": {
+        "tool": "discover_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 545.381812,
+      "start_offset_ms": 4741.126979,
+      "status": "ok",
+      "attributes": {
+        "turn": 5
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 889.48074,
+      "start_offset_ms": 5286.675993,
+      "status": "ok",
+      "attributes": {
+        "turn": 6
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.048224,
+      "start_offset_ms": 6176.254014,
+      "status": "ok",
+      "attributes": {
+        "tool": "assess_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 520.216301,
+      "start_offset_ms": 6176.32221,
+      "status": "ok",
+      "attributes": {
+        "turn": 7
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.018093,
+      "start_offset_ms": 6696.656446,
+      "status": "error",
+      "attributes": {
+        "tool": "discover_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 555.976514,
+      "start_offset_ms": 6696.725694,
+      "status": "ok",
+      "attributes": {
+        "turn": 8
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.040998,
+      "start_offset_ms": 7252.955417,
+      "status": "error",
+      "attributes": {
+        "tool": "ask_user"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 824.298597,
+      "start_offset_ms": 7253.133478,
+      "status": "ok",
+      "attributes": {
+        "turn": 9
+      }
+    },
+    {
+      "name": "a2a_card_discovery",
+      "duration_ms": 247.890771,
+      "start_offset_ms": 8077.529421,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10003"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 247.937756,
+      "start_offset_ms": 8077.523518,
+      "status": "ok",
+      "attributes": {
+        "tool": "discover_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 781.533634,
+      "start_offset_ms": 8325.499079,
+      "status": "ok",
+      "attributes": {
+        "turn": 10
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 758.742649,
+      "start_offset_ms": 9107.190941,
+      "status": "ok",
+      "attributes": {
+        "turn": 11
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 669.472207,
+      "start_offset_ms": 9866.111106,
+      "status": "ok",
+      "attributes": {
+        "turn": 12
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.048407,
+      "start_offset_ms": 10535.678231,
+      "status": "ok",
+      "attributes": {
+        "tool": "assess_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 1148.618792,
+      "start_offset_ms": 10535.746177,
+      "status": "ok",
+      "attributes": {
+        "turn": 13
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.054531,
+      "start_offset_ms": 11684.473354,
+      "status": "ok",
+      "attributes": {
+        "tool": "assess_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 569.314837,
+      "start_offset_ms": 11684.549755,
+      "status": "ok",
+      "attributes": {
+        "turn": 14
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 562.046337,
+      "start_offset_ms": 12254.029225,
+      "status": "ok",
+      "attributes": {
+        "turn": 15
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 556.88636,
+      "start_offset_ms": 12816.218875,
+      "status": "ok",
+      "attributes": {
+        "turn": 16
+      }
+    },
+    {
+      "name": "manager_execution",
+      "duration_ms": 13373.542025,
+      "start_offset_ms": 0.008004,
+      "status": "error",
+      "attributes": {}
+    }
+  ],
+  "worker_traces": [],
+  "warnings": [],
+  "file": "/home/sunyoung/multi-agentic-auth/a2a-multi-agent/results/latency/94d2930138f54e2fb47e90b4153dc05d_manager_c3db1b7d.json"
+}

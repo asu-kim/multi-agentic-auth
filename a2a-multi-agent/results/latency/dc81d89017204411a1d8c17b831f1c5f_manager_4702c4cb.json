@@ -1,0 +1,652 @@
+{
+  "schema": "latency/v1",
+  "trace_id": "dc81d89017204411a1d8c17b831f1c5f",
+  "role": "manager",
+  "started_at": "2026-11-05T22:46:19.612221+00:00",
+  "outcome": "error",
+  "total_ms": 49916.268919,
+  "host": "en4234875l",
+  "pid": 3543714,
+  "metadata": {
+    "agent": "Manager Agent"
+  },
+  "summary": {
+    "manager_llm": {
+      "count": 13,
+      "ok_count": 13,
+      "measured_count": 13,
+      "total_ms": 15165.735648
+    },
+    "a2a_card_discovery": {
+      "count": 3,
+      "ok_count": 3,
+      "measured_count": 3,
+      "total_ms": 640.358996
+    },
+    "manager_tool": {
+      "count": 11,
+      "ok_count": 8,
+      "measured_count": 11,
+      "total_ms": 34744.88974299999
+    },
+    "agent_selection": {
+      "count": 1,
+      "ok_count": 1,
+      "measured_count": 1,
+      "total_ms": 6545.822061
+    },
+    "iotauth_node_startup": {
+      "count": 2,
+      "ok_count": 2,
+      "measured_count": 2,
+      "total_ms": 93.90792400000001
+    },
+    "auth_privilege_command_round_trip": {
+      "count": 2,
+      "ok_count": 2,
+      "measured_count": 2,
+      "total_ms": 81.47392500000001
+    },
+    "delegation": {
+      "count": 2,
+      "ok_count": 2,
+      "measured_count": 2,
+      "total_ms": 184.097421
+    },
+    "a2a_task_round_trip": {
+      "count": 1,
+      "ok_count": 0,
+      "measured_count": 1,
+      "total_ms": 33919.019321
+    },
+    "a2a_task_delivery": {
+      "count": 1,
+      "ok_count": 0,
+      "measured_count": 0,
+      "total_ms": null
+    },
+    "a2a_task_overhead_estimate": {
+      "count": 1,
+      "ok_count": 0,
+      "measured_count": 1,
+      "total_ms": 358.18152700000064
+    },
+    "manager_execution": {
+      "count": 1,
+      "ok_count": 0,
+      "measured_count": 1,
+      "total_ms": 49916.258104
+    }
+  },
+  "events": [
+    {
+      "name": "manager_llm",
+      "duration_ms": 1258.410192,
+      "start_offset_ms": 0.174901,
+      "status": "ok",
+      "attributes": {
+        "turn": 1
+      }
+    },
+    {
+      "name": "a2a_card_discovery",
+      "duration_ms": 3.458446,
+      "start_offset_ms": 1258.720085,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10001"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 3.510345,
+      "start_offset_ms": 1258.709807,
+      "status": "ok",
+      "attributes": {
+        "tool": "discover_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 1557.62186,
+      "start_offset_ms": 1262.415446,
+      "status": "ok",
+      "attributes": {
+        "turn": 2
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.024995,
+      "start_offset_ms": 2820.196653,
+      "status": "ok",
+      "attributes": {
+        "tool": "set_requirements"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 829.071973,
+      "start_offset_ms": 2820.505744,
+      "status": "ok",
+      "attributes": {
+        "turn": 3
+      }
+    },
+    {
+      "name": "a2a_card_discovery",
+      "duration_ms": 2.64416,
+      "start_offset_ms": 3649.687687,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10002"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 2.698282,
+      "start_offset_ms": 3649.677481,
+      "status": "ok",
+      "attributes": {
+        "tool": "discover_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 783.435828,
+      "start_offset_ms": 3652.618267,
+      "status": "ok",
+      "attributes": {
+        "turn": 4
+      }
+    },
+    {
+      "name": "a2a_card_discovery",
+      "duration_ms": 634.25639,
+      "start_offset_ms": 4436.155254,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10003"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 634.363538,
+      "start_offset_ms": 4436.149647,
+      "status": "ok",
+      "attributes": {
+        "tool": "discover_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 1474.559894,
+      "start_offset_ms": 5071.109717,
+      "status": "ok",
+      "attributes": {
+        "turn": 5
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.066997,
+      "start_offset_ms": 6545.788022,
+      "status": "ok",
+      "attributes": {
+        "tool": "assess_agent"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 751.008128,
+      "start_offset_ms": 6546.08213,
+      "status": "ok",
+      "attributes": {
+        "turn": 6
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 712.286512,
+      "start_offset_ms": 7297.419126,
+      "status": "ok",
+      "attributes": {
+        "turn": 7
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.403418,
+      "start_offset_ms": 8009.800037,
+      "status": "ok",
+      "attributes": {
+        "tool": "list_resources"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 969.335363,
+      "start_offset_ms": 8010.386758,
+      "status": "ok",
+      "attributes": {
+        "turn": 8
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.028585,
+      "start_offset_ms": 8979.87419,
+      "status": "ok",
+      "attributes": {
+        "tool": "select_resource"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 1073.260917,
+      "start_offset_ms": 8980.137302,
+      "status": "ok",
+      "attributes": {
+        "turn": 9
+      }
+    },
+    {
+      "name": "agent_selection",
+      "duration_ms": 6545.822061,
+      "start_offset_ms": 0.0,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10003"
+      }
+    },
+    {
+      "name": "iotauth_node_startup",
+      "duration_ms": 42.086335,
+      "start_offset_ms": 10053.745662,
+      "status": "ok",
+      "attributes": {
+        "action": "DelegationGrant",
+        "resource": "Gate"
+      }
+    },
+    {
+      "name": "auth_privilege_command_round_trip",
+      "duration_ms": 50.297293,
+      "start_offset_ms": 10095.823608,
+      "status": "ok",
+      "attributes": {
+        "action": "DelegationGrant",
+        "resource": "Gate"
+      }
+    },
+    {
+      "name": "delegation",
+      "duration_ms": 96.980966,
+      "start_offset_ms": 10053.715931,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10003",
+        "resource": "Gate"
+      }
+    },
+    {
+      "name": "iotauth_node_startup",
+      "duration_ms": 51.821589,
+      "start_offset_ms": 10150.90108,
+      "status": "ok",
+      "attributes": {
+        "action": "DelegationGrant",
+        "resource": "TargetItem"
+      }
+    },
+    {
+      "name": "auth_privilege_command_round_trip",
+      "duration_ms": 31.176632,
+      "start_offset_ms": 10202.720029,
+      "status": "ok",
+      "attributes": {
+        "action": "DelegationGrant",
+        "resource": "TargetItem"
+      }
+    },
+    {
+      "name": "delegation",
+      "duration_ms": 87.116455,
+      "start_offset_ms": 10150.729511,
+      "status": "ok",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10003",
+        "resource": "TargetItem"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 184.377165,
+      "start_offset_ms": 10053.498654,
+      "status": "ok",
+      "attributes": {
+        "tool": "delegate_authority"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 871.480174,
+      "start_offset_ms": 10238.481691,
+      "status": "ok",
+      "attributes": {
+        "turn": 10
+      }
+    },
+    {
+      "name": "a2a_task_round_trip",
+      "duration_ms": 33919.019321,
+      "start_offset_ms": 11110.237574,
+      "status": "error",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10003"
+      }
+    },
+    {
+      "name": "a2a_task_delivery",
+      "duration_ms": null,
+      "status": "clock_sync_unverified",
+      "attributes": {
+        "boundary": "a2a_send_to_executor_entry",
+        "sender_unix_ns": 1793918790722700796,
+        "receiver_unix_ns": 1793918790900743688,
+        "clock_basis": "wall_clock",
+        "wall_clock_delta_ms": 178.042892,
+        "clock_sync_assumed": false,
+        "agent_url": "http://127.0.0.1:10003"
+      }
+    },
+    {
+      "name": "a2a_task_overhead_estimate",
+      "duration_ms": 358.18152700000064,
+      "status": "estimated",
+      "attributes": {
+        "agent_url": "http://127.0.0.1:10003"
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 33919.293495,
+      "start_offset_ms": 11110.066533,
+      "status": "error",
+      "attributes": {
+        "tool": "dispatch_task"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 1436.906072,
+      "start_offset_ms": 45029.949307,
+      "status": "ok",
+      "attributes": {
+        "turn": 11
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 1088.866533,
+      "start_offset_ms": 46467.188702,
+      "status": "ok",
+      "attributes": {
+        "turn": 12
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.018282,
+      "start_offset_ms": 47556.170316,
+      "status": "error",
+      "attributes": {
+        "tool": "revoke_authority"
+      }
+    },
+    {
+      "name": "manager_llm",
+      "duration_ms": 2359.492202,
+      "start_offset_ms": 47556.451276,
+      "status": "ok",
+      "attributes": {
+        "turn": 13
+      }
+    },
+    {
+      "name": "manager_tool",
+      "duration_ms": 0.104641,
+      "start_offset_ms": 49916.062597,
+      "status": "error",
+      "attributes": {
+        "tool": "finish_search"
+      }
+    },
+    {
+      "name": "manager_execution",
+      "duration_ms": 49916.258104,
+      "start_offset_ms": 0.006578,
+      "status": "error",
+      "attributes": {}
+    }
+  ],
+  "worker_traces": [
+    {
+      "schema": "latency/v1",
+      "trace_id": "dc81d89017204411a1d8c17b831f1c5f",
+      "role": "worker",
+      "started_at": "2026-11-05T22:46:30.901498+00:00",
+      "outcome": "error",
+      "total_ms": 33560.855456,
+      "host": "yahboom",
+      "pid": 247018,
+      "metadata": {
+        "agent": "Forklift Agent"
+      },
+      "summary": {
+        "a2a_task_delivery": {
+          "count": 1,
+          "ok_count": 0,
+          "measured_count": 0,
+          "total_ms": null
+        },
+        "gazebo_action": {
+          "count": 3,
+          "ok_count": 2,
+          "measured_count": 3,
+          "total_ms": 30463.861109
+        },
+        "sst_session_key": {
+          "count": 2,
+          "ok_count": 2,
+          "measured_count": 2,
+          "total_ms": 545.228579
+        },
+        "sst_connect": {
+          "count": 2,
+          "ok_count": 2,
+          "measured_count": 2,
+          "total_ms": 1103.353637
+        },
+        "sst_handshake": {
+          "count": 2,
+          "ok_count": 2,
+          "measured_count": 2,
+          "total_ms": 557.579193
+        },
+        "sst_command_reply": {
+          "count": 2,
+          "ok_count": 2,
+          "measured_count": 2,
+          "total_ms": 1394.543799
+        },
+        "sst_resource_command": {
+          "count": 2,
+          "ok_count": 2,
+          "measured_count": 2,
+          "total_ms": 2746.65498
+        },
+        "worker_execution": {
+          "count": 1,
+          "ok_count": 0,
+          "measured_count": 1,
+          "total_ms": 33560.518297
+        }
+      },
+      "events": [
+        {
+          "name": "a2a_task_delivery",
+          "duration_ms": null,
+          "status": "clock_sync_unverified",
+          "attributes": {
+            "boundary": "a2a_send_to_executor_entry",
+            "sender_unix_ns": 1793918790722700796,
+            "receiver_unix_ns": 1793918790900743688,
+            "clock_basis": "wall_clock",
+            "wall_clock_delta_ms": 178.042892,
+            "clock_sync_assumed": false
+          }
+        },
+        {
+          "name": "gazebo_action",
+          "duration_ms": 4888.301059,
+          "start_offset_ms": 1.047797,
+          "status": "ok",
+          "attributes": {
+            "action": "begin"
+          }
+        },
+        {
+          "name": "sst_session_key",
+          "duration_ms": 225.506139,
+          "status": "ok",
+          "source": "node",
+          "attributes": {
+            "resource": "TargetItem",
+            "command": "RETRIEVE_ITEM"
+          }
+        },
+        {
+          "name": "sst_connect",
+          "duration_ms": 505.877014,
+          "status": "ok",
+          "source": "node",
+          "attributes": {
+            "resource": "TargetItem",
+            "command": "RETRIEVE_ITEM"
+          }
+        },
+        {
+          "name": "sst_handshake",
+          "duration_ms": 280.08303,
+          "status": "ok",
+          "source": "node",
+          "attributes": {
+            "resource": "TargetItem",
+            "command": "RETRIEVE_ITEM"
+          }
+        },
+        {
+          "name": "sst_command_reply",
+          "duration_ms": 184.718513,
+          "status": "ok",
+          "source": "node",
+          "attributes": {
+            "resource": "TargetItem",
+            "command": "RETRIEVE_ITEM"
+          }
+        },
+        {
+          "name": "sst_resource_command",
+          "duration_ms": 811.593256,
+          "start_offset_ms": 4891.03913,
+          "status": "ok",
+          "attributes": {
+            "resource": "TargetItem",
+            "command": "RETRIEVE_ITEM"
+          }
+        },
+        {
+          "name": "gazebo_action",
+          "duration_ms": 7248.161708,
+          "start_offset_ms": 5722.773105,
+          "status": "ok",
+          "attributes": {
+            "action": "pickup"
+          }
+        },
+        {
+          "name": "sst_session_key",
+          "duration_ms": 319.72244,
+          "status": "ok",
+          "source": "node",
+          "attributes": {
+            "resource": "Gate",
+            "command": "OPEN_GATE"
+          }
+        },
+        {
+          "name": "sst_connect",
+          "duration_ms": 597.476623,
+          "status": "ok",
+          "source": "node",
+          "attributes": {
+            "resource": "Gate",
+            "command": "OPEN_GATE"
+          }
+        },
+        {
+          "name": "sst_handshake",
+          "duration_ms": 277.496163,
+          "status": "ok",
+          "source": "node",
+          "attributes": {
+            "resource": "Gate",
+            "command": "OPEN_GATE"
+          }
+        },
+        {
+          "name": "sst_command_reply",
+          "duration_ms": 1209.825286,
+          "status": "ok",
+          "source": "node",
+          "attributes": {
+            "resource": "Gate",
+            "command": "OPEN_GATE"
+          }
+        },
+        {
+          "name": "sst_resource_command",
+          "duration_ms": 1935.061724,
+          "start_offset_ms": 12971.965969,
+          "status": "ok",
+          "attributes": {
+            "resource": "Gate",
+            "command": "OPEN_GATE"
+          }
+        },
+        {
+          "name": "gazebo_action",
+          "duration_ms": 18327.398342,
+          "start_offset_ms": 14925.031699,
+          "status": "error",
+          "attributes": {
+            "action": "finish"
+          }
+        },
+        {
+          "name": "worker_execution",
+          "duration_ms": 33560.518297,
+          "start_offset_ms": 0.317671,
+          "status": "error",
+          "attributes": {}
+        }
+      ],
+      "worker_traces": [],
+      "warnings": [],
+      "file": "/home/jetson/multi-agentic-auth/a2a-multi-agent/results/latency/dc81d89017204411a1d8c17b831f1c5f_worker_ab995240.json"
+    }
+  ],
+  "warnings": [],
+  "file": "/home/sunyoung/multi-agentic-auth/a2a-multi-agent/results/latency/dc81d89017204411a1d8c17b831f1c5f_manager_4702c4cb.json"
+}
