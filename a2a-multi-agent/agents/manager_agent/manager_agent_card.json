@@ -11,13 +11,13 @@
     "text/plain",
     "application/json"
   ],
-  "description": "Discover and select an agent by assessing its A2A card, skills and declared limits.",
+  "description": "Discover and select an agent by assessing its A2A card, skills and declared limits, then coordinate authorization, task dispatch, and completion handling.",
   "name": "Manager Agent",
   "preferredTransport": "JSONRPC",
   "protocolVersion": "0.3.0",
   "skills": [
     {
-      "description": "Select one agent whose card matches all requested capabilities and constraints. Selection does not confirm availability or execute work.",
+      "description": "Select one agent whose card matches all requested capabilities and constraints, obtain required authority, and dispatch the original task. Report the worker result and revoke delegated access after completion. If execution cannot proceed, report the missing information or failure; selection alone is not task completion.",
       "examples": [
         "Find a forklift that can pick up a box and move it to station B."
       ],

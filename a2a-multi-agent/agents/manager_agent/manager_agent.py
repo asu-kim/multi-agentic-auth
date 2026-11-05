@@ -11,7 +11,9 @@ from agents.manager_agent.manager_tools import ManagerTools, tools_for_roster
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_INSTRUCTION = """Select ONE agent using only A2A Agent Cards. You choose
+SYSTEM_INSTRUCTION = """Select ONE agent using only A2A Agent Cards and carry the task
+through authorization, worker dispatch, and completion handling. Selection alone
+is not a finished task. You choose
 which tool to call and which configured address to inspect next; no discovery order
 is required. You know addresses only until discover_agent returns their cards.
 Copy agent_url exactly from the configured roster or tool schema choices. If an
