@@ -1,0 +1,213 @@
+{
+  "schema": "latency/v1",
+  "trace_id": "3c09022b80a6431b8a7f684c1cb7f427",
+  "role": "worker",
+  "started_at": "2026-11-05T00:17:07.930401+00:00",
+  "outcome": "simulated",
+  "total_ms": 26539.203419,
+  "host": "en4234875l",
+  "pid": 3427532,
+  "metadata": {
+    "agent": "Forklift Agent"
+  },
+  "summary": {
+    "a2a_task_delivery": {
+      "count": 1,
+      "ok_count": 1,
+      "measured_count": 1,
+      "total_ms": 1.968128
+    },
+    "gazebo_action": {
+      "count": 3,
+      "ok_count": 3,
+      "measured_count": 3,
+      "total_ms": 25191.629949000002
+    },
+    "sst_session_key": {
+      "count": 2,
+      "ok_count": 2,
+      "measured_count": 2,
+      "total_ms": 48.726318
+    },
+    "sst_connect": {
+      "count": 2,
+      "ok_count": 2,
+      "measured_count": 2,
+      "total_ms": 185.810406
+    },
+    "sst_handshake": {
+      "count": 2,
+      "ok_count": 2,
+      "measured_count": 2,
+      "total_ms": 136.927971
+    },
+    "sst_command_reply": {
+      "count": 2,
+      "ok_count": 2,
+      "measured_count": 2,
+      "total_ms": 1038.154632
+    },
+    "sst_resource_command": {
+      "count": 2,
+      "ok_count": 2,
+      "measured_count": 2,
+      "total_ms": 1335.604158
+    },
+    "worker_execution": {
+      "count": 1,
+      "ok_count": 1,
+      "measured_count": 1,
+      "total_ms": 26539.169154
+    }
+  },
+  "events": [
+    {
+      "name": "a2a_task_delivery",
+      "duration_ms": 1.968128,
+      "status": "ok",
+      "attributes": {
+        "boundary": "a2a_send_to_executor_entry",
+        "sender_unix_ns": 1793837827928346052,
+        "receiver_unix_ns": 1793837827930314404,
+        "clock_basis": "shared_monotonic"
+      }
+    },
+    {
+      "name": "gazebo_action",
+      "duration_ms": 4509.844032,
+      "start_offset_ms": 0.24501,
+      "status": "ok",
+      "attributes": {
+        "action": "begin"
+      }
+    },
+    {
+      "name": "sst_session_key",
+      "duration_ms": 22.712058,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "TargetItem",
+        "command": "RETRIEVE_ITEM"
+      }
+    },
+    {
+      "name": "sst_connect",
+      "duration_ms": 103.620173,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "TargetItem",
+        "command": "RETRIEVE_ITEM"
+      }
+    },
+    {
+      "name": "sst_handshake",
+      "duration_ms": 80.866034,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "TargetItem",
+        "command": "RETRIEVE_ITEM"
+      }
+    },
+    {
+      "name": "sst_command_reply",
+      "duration_ms": 14.866452,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "TargetItem",
+        "command": "RETRIEVE_ITEM"
+      }
+    },
+    {
+      "name": "sst_resource_command",
+      "duration_ms": 174.568898,
+      "start_offset_ms": 4520.826705,
+      "status": "ok",
+      "attributes": {
+        "resource": "TargetItem",
+        "command": "RETRIEVE_ITEM"
+      }
+    },
+    {
+      "name": "gazebo_action",
+      "duration_ms": 6829.476119,
+      "start_offset_ms": 4695.775493,
+      "status": "ok",
+      "attributes": {
+        "action": "pickup"
+      }
+    },
+    {
+      "name": "sst_session_key",
+      "duration_ms": 26.01426,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "Gate",
+        "command": "OPEN_GATE"
+      }
+    },
+    {
+      "name": "sst_connect",
+      "duration_ms": 82.190233,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "Gate",
+        "command": "OPEN_GATE"
+      }
+    },
+    {
+      "name": "sst_handshake",
+      "duration_ms": 56.061937,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "Gate",
+        "command": "OPEN_GATE"
+      }
+    },
+    {
+      "name": "sst_command_reply",
+      "duration_ms": 1023.28818,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "Gate",
+        "command": "OPEN_GATE"
+      }
+    },
+    {
+      "name": "sst_resource_command",
+      "duration_ms": 1161.03526,
+      "start_offset_ms": 11525.615559,
+      "status": "ok",
+      "attributes": {
+        "resource": "Gate",
+        "command": "OPEN_GATE"
+      }
+    },
+    {
+      "name": "gazebo_action",
+      "duration_ms": 13852.309798,
+      "start_offset_ms": 12686.787014,
+      "status": "ok",
+      "attributes": {
+        "action": "finish"
+      }
+    },
+    {
+      "name": "worker_execution",
+      "duration_ms": 26539.169154,
+      "start_offset_ms": 0.02626,
+      "status": "ok",
+      "attributes": {}
+    }
+  ],
+  "worker_traces": [],
+  "warnings": [],
+  "file": "/home/sunyoung/multi-agentic-auth/a2a-multi-agent/results/latency/3c09022b80a6431b8a7f684c1cb7f427_worker_4bba77a0.json"
+}
