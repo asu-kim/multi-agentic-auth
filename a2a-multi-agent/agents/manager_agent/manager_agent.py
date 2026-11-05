@@ -22,11 +22,17 @@ Use set_requirements for ALL required capabilities. If required_capabilities is 
 infer all required capabilities from the query. Match synonyms to card skill
 IDs, but preserve unsupported requirements as descriptive snake_case IDs. Never
 omit a requirement to force a match. Explicit user requirements cannot change.
-Use each skill's description to determine which task steps it covers. When a card
-advertises deliver_to_safe_zone with gate traversal and placement in its description,
-map those requested steps to deliver_to_safe_zone. They do not require additional
-skill IDs for gate_traversal or delivery. Still check shelf reach, payload limits,
-and required resource permissions. User assumptions cannot add skills to a card.
+Use each skill's description to determine which task steps it covers.
+Shelf-reach and carrying skills are core capabilities. deliver_to_safe_zone is a
+supplementary skill covering gate traversal and placement at the designated zone;
+it does not replace the reach or carrying skills needed for retrieval and transport.
+When inferring requirements for a retrieval-and-delivery task, include the relevant
+reach skill, carrying skill, and deliver_to_safe_zone together. Do not infer the
+delivery skill for tasks that only concern shelf access or carrying. Gate traversal
+and destination placement do not require additional skill IDs for gate_traversal
+or delivery. Even with explicit requirements, assess the entire original task
+against the core skills, shelf reach, payload limits, and required resource
+permissions. User assumptions cannot add skills to a card.
 
 Read the original query against each candidate's skills, descriptions and limits.
 Use assess_agent to record YOUR card-based suitability judgment and a concise

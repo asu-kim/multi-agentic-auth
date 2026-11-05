@@ -11,7 +11,7 @@
     "text/plain",
     "application/json"
   ],
-  "description": "Warehouse forklift agent modeled on Section 2.3: reaches the middle shelf and carries heavy items. These are scenario capabilities, not a claim of implemented forklift hardware control. Limits: Middle-shelf retrieval and heavy-item transport; no top-shelf or flight capability is advertised. Capability does not grant access: protected resources require a valid, unrevoked permission for the authorized task interval. Executes simulated delivery through a gate into the secure zone using the shared deliver_to_safe_zone workflow, subject to SST access permissions and the stated shelf and payload limits.",
+  "description": "Warehouse forklift agent modeled on Section 2.3: reaches the middle shelf and carries heavy items. These are scenario capabilities, not a claim of implemented forklift hardware control. Limits: Middle-shelf retrieval and heavy-item transport; no top-shelf or flight capability is advertised. Capability does not grant access: protected resources require a valid, unrevoked permission for the authorized task interval. Core capabilities are reach_middle_shelf and carry_heavy_items. The supplementary deliver_to_safe_zone skill adds gate traversal and placement in the designated zone when the task requires them. Retrieval and transport suitability depend on the core skills; delivery alone does not establish suitability. Execution uses the shared simulated workflow, subject to SST access permissions and the stated shelf and payload limits.",
   "name": "Forklift Agent",
   "preferredTransport": "JSONRPC",
   "protocolVersion": "0.3.0",
@@ -19,7 +19,7 @@
     {
       "id": "reach_middle_shelf",
       "name": "Reach middle shelf",
-      "description": "Model access to a middle-shelf storage location for retrieval.",
+      "description": " Access to a middle-shelf storage location to retrieve target item.",
       "tags": [
         "reach_middle_shelf"
       ],
@@ -30,7 +30,7 @@
     {
       "id": "carry_heavy_items",
       "name": "Carry heavy items",
-      "description": "Model transport of heavy items.",
+      "description": "Transport of heavy items.",
       "tags": [
         "carry_heavy_items"
       ],
@@ -40,16 +40,16 @@
     },
     {
       "id": "deliver_to_safe_zone",
-      "name": "Deliver to secure zone through a gate",
-      "description": "Execute the simulated warehouse delivery workflow. Approach and retrieve an authorized item, carry it to the gate, request gate opening, traverse the open gate, and place the item in the secure zone. This skill includes gate traversal and delivery. It requires valid SST access to both the item and gate. The agent's shelf-reach and payload limits still apply.",
+      "name": "Supplementary delivery to designated zone",
+      "description": "Supplement reach_middle_shelf and carry_heavy_items with gate traversal and placement in the designated zone. For a retrieval-and-delivery task, use these skills together: reach_middle_shelf covers shelf access, carry_heavy_items covers item transport, and deliver_to_safe_zone covers the gate and destination steps. This supplementary skill does not independently provide retrieval, shelf reach, or payload capability, and is not required for tasks that only concern the core skills. The shared simulated execution workflow coordinates the combined task. Delivery requires valid SST access to both the item and gate; shelf-reach and payload limits still apply.",
       "tags": [
         "deliver_to_safe_zone",
-        "delivery",
+        "supplementary_delivery",
         "gate_traversal",
-        "secure_zone"
+        "designated_zone"
       ],
       "examples": [
-        "Retrieve a heavy target item from the middle shelf and deliver it to the secure zone through the gate."
+        "Combine reach_middle_shelf, carry_heavy_items, and deliver_to_safe_zone to retrieve a heavy item from the middle shelf and deliver it through the gate to the designated zone."
       ]
     }
   ],

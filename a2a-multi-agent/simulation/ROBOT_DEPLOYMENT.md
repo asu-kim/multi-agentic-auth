@@ -170,4 +170,25 @@ On the robot, verify the bridge route:
 curl --fail http://127.0.0.1:21200/status
 ```
 
-Restart Manager after changing its environment and send the existing delivery request. Worker latency files are saved on the robot and included in the Manager result. Since Manager and worker now use different hosts, `a2a_task_delivery` requires verified clock synchronization before treating wall-clock differences as latency; see the main README.
+The first two requests should return agent cards. The bridge should report `idle`. Send the task to Manager.
+```bash
+python -m agents.client \
+  "Retrieve the heavy target item from the middle shelf and deliver it to the secure zone through the gate."  
+```
+
+
+You can specify capabilities and resources manually.
+```bash
+python -m agents.client "Retrieve the box and deliver it to the secure zone through the gate." \
+  --capability reach_middle_shelf --capability carry_heavy_items \
+  --resource TargetItem --resource Gate --validity '5*min' --json
+```
+
+Watch the delivery in the Mac GUI. Manager delegates access before dispatch and revokes it after the worker reports completion. The bridge reports `completed` after placement. The worker returns `simulated` because this is a Gazebo demonstration.
+
+Before another trial, reset the scene from either computer while the tunnel is open.
+
+```bash
+curl --fail -X POST http://127.0.0.1:21200/action \
+  -H 'Content-Type: application/json' -d '{"action":"reset"}'
+```
