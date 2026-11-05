@@ -79,7 +79,7 @@ java -jar target/auth-server-jar-with-dependencies.jar \
   -p ../properties/exampleAuth101.properties
 ```
 
-On the Mac, stop the old `gate_test` world. Run each block below in a separate terminal.
+On the Mac, run each block below in a separate terminal.
 
 ```bash
 cd ~/multi-agentic-auth/a2a-multi-agent

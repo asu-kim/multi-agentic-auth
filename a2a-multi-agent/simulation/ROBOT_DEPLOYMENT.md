@@ -4,9 +4,9 @@ This setup runs the Forklift Agent on the robot. All motion, gate animation, and
 
 | Host | Services |
 |---|---|
-| Ubuntu server (`10.218.101.248`) | Auth101, LLM service, Manager and optional Drone/Rover agents |
-| Mac (`100.101.175.20`) | Gazebo, warehouse bridge, Gate, TargetItem, SSH tunnels |
-| ROSMASTER (`100.101.153.11`) | Forklift Agent, Node SST client, local terminal display |
+| Ubuntu server | Auth101, LLM service, Manager and optional Drone/Rover agents |
+| Mac | Gazebo, warehouse bridge, Gate, TargetItem, SSH tunnels |
+| ROSMASTER | Forklift Agent, Node SST client, local terminal display |
 
 The robot address comes from the supplied Tailscale screenshot. Confirm that it is online before connecting. Replace `ROBOT_USER` with the robot's SSH login. Keep the robot awake and connected during the task.
 
@@ -40,12 +40,22 @@ python -m agents.forklift_agent --host 0.0.0.0
 
 Start the agent after completing the credentials, tunnels, and environment settings below. The robot does not need Gazebo or a local LLM for the explicit `deliver_to_safe_zone` action. The tunnel below also makes the server LLM available for natural-language requests.
 
+
+
+
 ## 2. Copy the Forklift credentials
 
 The checked configuration uses `usePermanentDistKey: true`. It needs these two files from the Auth deployment that provisioned `net1.forkliftAgent`:
 
 - `Net1.forkliftAgentCipherKey.key`
 - `Net1.forkliftAgentMacKey.key`
+
+On the robot, mac, and server:
+```bash
+cd ~/multi-agentic-auth/iotauth/examples
+./cleanAll.sh
+./generateAll.sh -g configs/my_agents.graph
+```
 
 On the Mac:
 
@@ -61,6 +71,42 @@ scp entity/credentials/keys/net1/Net1.forkliftAgent*Key.key \
 ```
 
 Keep the matching `configs/net1/forkliftAgent.config`. In the current permanent distribution-key mode, the loader does not read a client private key or the Auth public certificate. The robot does not need Gate, TargetItem, or Manager secret keys. Session keys are obtained from Auth at runtime, not copied.
+
+Run Auth101 on the Ubuntu server and keep the LLM service running.
+
+```bash
+cd ~/multi-agentic-auth/iotauth/auth/auth-server
+java -jar target/auth-server-jar-with-dependencies.jar \
+  -p ../properties/exampleAuth101.properties
+```
+
+
+On the Mac, run each block below in a separate terminal.
+
+```bash
+cd ~/multi-agentic-auth/a2a-multi-agent
+gz sim -s -r simulation/warehouse.sdf
+```
+
+```bash
+gz sim -g
+```
+
+```bash
+cd ~/multi-agentic-auth/a2a-multi-agent
+python3 simulation/warehouse_bridge.py
+```
+
+```bash
+cd ~/multi-agentic-auth/iotauth/entity/node/example_entities
+node gate.js configs/net1/gate.config
+```
+
+```bash
+cd ~/multi-agentic-auth/iotauth/entity/node/example_entities
+node targetItem.js configs/net1/targetItem.config
+```
+
 
 ## 3. Connect through the Mac
 
@@ -176,6 +222,11 @@ python -m agents.client \
   "Retrieve the heavy target item from the middle shelf and deliver it to the secure zone through the gate."  
 ```
 
+```bash
+python -m agents.client \
+  "Retrieve the heavy target item from the middle shelf and deliver it to the secure zone through the gate." --json \
+  2>&1 | tee result.json
+```
 
 You can specify capabilities and resources manually.
 ```bash

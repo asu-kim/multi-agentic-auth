@@ -7,7 +7,7 @@ from pathlib import Path
 from agents.common.latency import traced, measure, current_trace
 from agents.common.agent_card_loader import load_agent_card
 from agents.common.search_models import SearchRequest, SearchResult
-from agents.manager_agent.manager_tools import ManagerTools, tools_for_roster
+from agents.manager_agent.manager_tools import ManagerTools
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,8 @@ You may revise inferred requirements; doing so clears all previous assessments.
 Rediscovering an agent clears its previous assessment.
 
 After identifying and positively assessing an agent with all desired capabilities,
-call delegate_authority with that agent's URL before finish_search. The tool resolves
+resolve the resource scope as described below, then call delegate_authority with
+that agent's URL before finish_search. The tool resolves
 its IoTAuth group from deployment configuration. If the user provided a resource
 in request.delegation, preserve it. Otherwise call list_resources, compare the task
 with resource group names, entity names, descriptions and allowed recipient groups,
@@ -106,7 +107,6 @@ class ManagerAgent:
     async def search(self, request: SearchRequest) -> SearchResult:
         # Conversation/evidence state belongs to this call, not the shared server instance.
         actions = ManagerTools(request, self.urls, self.peer)
-        tools = tools_for_roster(actions.urls)
         messages = [
             {"role": "system", "content": SYSTEM_INSTRUCTION},
             {"role": "user", "content": json.dumps({"request": request.model_dump(),
@@ -127,8 +127,14 @@ class ManagerAgent:
         try:
             async with asyncio.timeout(self.timeout):
                 for turn in range(1, self.max_turns + 1):
+                    tools, next_step = actions.next_tools()
+                    # Current state is ephemeral guidance, not an ever-growing
+                    # sequence of hints that could contradict later tool results.
+                    current_messages = [*messages, {"role": "user", "content":
+                        f"Runtime progress (turn {turn}/{self.max_turns}): {next_step} "
+                        "Use a currently offered tool with its exact schema."}]
                     with measure("manager_llm", turn=turn):
-                        message = await self.llm.chat(messages, tools)
+                        message = await self.llm.chat(current_messages, tools)
                     # Observation only: remove provider reasoning before replaying the message.
                     thoughts = {field: message.pop(field) for field in
                                 ("reasoning", "reasoning_content", "thinking")
