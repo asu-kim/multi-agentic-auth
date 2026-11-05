@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import TypeVar
 from uuid import uuid4
 
@@ -10,6 +11,10 @@ T = TypeVar("T", bound=BaseModel)
 
 class ModelError(RuntimeError):
     pass
+
+
+class ToolCallParseError(ModelError):
+    """The provider rejected generated tool syntax before returning any calls."""
 
 
 class OllamaJSON:
@@ -29,7 +34,17 @@ class OllamaJSON:
             )
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
-            raise ModelError(f"Model {self.model!r} at {self.base_url}: HTTP "
+            error_type = ModelError
+            # Retry only the provider's explicit tool-parser failure, not arbitrary
+            # server errors or transport failures. No returned tools were executed.
+            if exc.response.status_code == 500:
+                try:
+                    detail = exc.response.json()["error"]["message"]
+                except (ValueError, TypeError, KeyError):
+                    detail = None
+                if isinstance(detail, str) and detail.lower().startswith("error parsing tool call"):
+                    error_type = ToolCallParseError
+            raise error_type(f"Model {self.model!r} at {self.base_url}: HTTP "
                              f"{exc.response.status_code}: {exc.response.text[:600]}") from exc
         except httpx.RequestError as exc:
             raise ModelError(f"Cannot reach model {self.model!r} at {self.base_url}: {exc}") from exc
@@ -62,7 +77,22 @@ class OllamaJSON:
 
     async def chat(self, messages: list[dict], tools: list[dict]) -> dict:
         """Let the manager model select tools; preserve tool IDs for the next turn."""
-        message = await self._completion(messages, tools=tools, tool_choice="auto", parallel_tool_calls=False)
+        try:
+            message = await self._completion(messages, tools=tools, tool_choice="auto", parallel_tool_calls=False)
+        except ToolCallParseError:
+            logging.getLogger(__name__).warning(
+                "Provider rejected tool-call syntax; retrying model generation once.")
+            # Keep completed tool history intact. Do not replay tool execution or
+            # feed the provider's malformed output back as conversation content.
+            recovery_messages = [*messages, {"role": "user", "content": (
+                "The provider could not parse your last tool call; no tool from that "
+                "response was executed. Continue from the existing tool results. "
+                "Return one native tool call with a valid JSON argument object matching "
+                "its schema. Copy agent_url exactly from the allowed schema values. "
+                "Do not put prose, reasoning, Markdown, or multiple objects in arguments."
+            )}]
+            message = await self._completion(
+                recovery_messages, tools=tools, tool_choice="auto", parallel_tool_calls=False)
         # Preserve provider-emitted reasoning verbatim for observation by the manager.
         assistant = {"role": "assistant", "content": message.get("content") or ""}
         for field in ("reasoning", "reasoning_content", "thinking"):
