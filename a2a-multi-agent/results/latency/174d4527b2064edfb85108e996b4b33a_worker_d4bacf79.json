@@ -1,0 +1,215 @@
+{
+  "schema": "latency/v1",
+  "trace_id": "174d4527b2064edfb85108e996b4b33a",
+  "role": "worker",
+  "started_at": "2026-11-05T01:12:23.325601+00:00",
+  "outcome": "simulated",
+  "total_ms": 26887.467552,
+  "host": "yahboom",
+  "pid": 41906,
+  "metadata": {
+    "agent": "Forklift Agent"
+  },
+  "summary": {
+    "a2a_task_delivery": {
+      "count": 1,
+      "ok_count": 0,
+      "measured_count": 0,
+      "total_ms": null
+    },
+    "gazebo_action": {
+      "count": 3,
+      "ok_count": 3,
+      "measured_count": 3,
+      "total_ms": 24646.39631
+    },
+    "sst_session_key": {
+      "count": 2,
+      "ok_count": 2,
+      "measured_count": 2,
+      "total_ms": 161.66028899999998
+    },
+    "sst_connect": {
+      "count": 2,
+      "ok_count": 2,
+      "measured_count": 2,
+      "total_ms": 643.095953
+    },
+    "sst_handshake": {
+      "count": 2,
+      "ok_count": 2,
+      "measured_count": 2,
+      "total_ms": 480.91044
+    },
+    "sst_command_reply": {
+      "count": 2,
+      "ok_count": 2,
+      "measured_count": 2,
+      "total_ms": 1284.745528
+    },
+    "sst_resource_command": {
+      "count": 2,
+      "ok_count": 2,
+      "measured_count": 2,
+      "total_ms": 2187.744552
+    },
+    "worker_execution": {
+      "count": 1,
+      "ok_count": 1,
+      "measured_count": 1,
+      "total_ms": 26887.364349
+    }
+  },
+  "events": [
+    {
+      "name": "a2a_task_delivery",
+      "duration_ms": null,
+      "status": "clock_sync_unverified",
+      "attributes": {
+        "boundary": "a2a_send_to_executor_entry",
+        "sender_unix_ns": 1793841143242076145,
+        "receiver_unix_ns": 1793841143324603477,
+        "clock_basis": "wall_clock",
+        "wall_clock_delta_ms": 82.527332,
+        "clock_sync_assumed": false
+      }
+    },
+    {
+      "name": "gazebo_action",
+      "duration_ms": 4315.663642,
+      "start_offset_ms": 1.449016,
+      "status": "ok",
+      "attributes": {
+        "action": "begin"
+      }
+    },
+    {
+      "name": "sst_session_key",
+      "duration_ms": 78.995876,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "TargetItem",
+        "command": "RETRIEVE_ITEM"
+      }
+    },
+    {
+      "name": "sst_connect",
+      "duration_ms": 416.928058,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "TargetItem",
+        "command": "RETRIEVE_ITEM"
+      }
+    },
+    {
+      "name": "sst_handshake",
+      "duration_ms": 337.650578,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "TargetItem",
+        "command": "RETRIEVE_ITEM"
+      }
+    },
+    {
+      "name": "sst_command_reply",
+      "duration_ms": 156.201099,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "TargetItem",
+        "command": "RETRIEVE_ITEM"
+      }
+    },
+    {
+      "name": "sst_resource_command",
+      "duration_ms": 701.314282,
+      "start_offset_ms": 4318.683403,
+      "status": "ok",
+      "attributes": {
+        "resource": "TargetItem",
+        "command": "RETRIEVE_ITEM"
+      }
+    },
+    {
+      "name": "gazebo_action",
+      "duration_ms": 6744.170743,
+      "start_offset_ms": 5046.51514,
+      "status": "ok",
+      "attributes": {
+        "action": "pickup"
+      }
+    },
+    {
+      "name": "sst_session_key",
+      "duration_ms": 82.664413,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "Gate",
+        "command": "OPEN_GATE"
+      }
+    },
+    {
+      "name": "sst_connect",
+      "duration_ms": 226.167895,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "Gate",
+        "command": "OPEN_GATE"
+      }
+    },
+    {
+      "name": "sst_handshake",
+      "duration_ms": 143.259862,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "Gate",
+        "command": "OPEN_GATE"
+      }
+    },
+    {
+      "name": "sst_command_reply",
+      "duration_ms": 1128.544429,
+      "status": "ok",
+      "source": "node",
+      "attributes": {
+        "resource": "Gate",
+        "command": "OPEN_GATE"
+      }
+    },
+    {
+      "name": "sst_resource_command",
+      "duration_ms": 1486.43027,
+      "start_offset_ms": 11791.730316,
+      "status": "ok",
+      "attributes": {
+        "resource": "Gate",
+        "command": "OPEN_GATE"
+      }
+    },
+    {
+      "name": "gazebo_action",
+      "duration_ms": 13586.561925,
+      "start_offset_ms": 13300.414259,
+      "status": "ok",
+      "attributes": {
+        "action": "finish"
+      }
+    },
+    {
+      "name": "worker_execution",
+      "duration_ms": 26887.364349,
+      "start_offset_ms": 0.087874,
+      "status": "ok",
+      "attributes": {}
+    }
+  ],
+  "worker_traces": [],
+  "warnings": [],
+  "file": "/home/jetson/multi-agentic-auth/a2a-multi-agent/results/latency/174d4527b2064edfb85108e996b4b33a_worker_d4bacf79.json"
+}
