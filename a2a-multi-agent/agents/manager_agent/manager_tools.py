@@ -63,7 +63,7 @@ TOOL_SPECS = {
     "revoke_authority": (AgentAddress, "After the worker reports completed or simulated, revoke the exact confirmed grant using user.js. Call before finish_search. Do not retry uncertain revocations."),
     "dispatch_task": (AgentAddress, "After successful delegation, send the selected agent its task over A2A. With confirmed grants for both item and gate, request deliver_to_safe_zone with the original task and resource endpoints. Otherwise forward the original task. Observe the worker result before finishing. Never retry uncertain execution."),
     "finish_search": (Finish, "Finish only after authority delegation and worker dispatch, then revocation after completion; report delegation or worker failures accurately. Selection alone cannot finish a task. Report not_found only after inspecting the roster and rejecting every skill-matching candidate."),
-    "ask_user": (Clarification, "Ask a specific question if requirements or feasibility details are missing."),
+    "ask_user": (Clarification, "Ask only for genuinely missing or conflicting task/authorization information. Read the original request first; never reconfirm supplied facts. An unsuitable candidate calls for further discovery, not clarification."),
 }
 TOOLS = [
     {"type": "function", "function": {"name": name, "description": description,
