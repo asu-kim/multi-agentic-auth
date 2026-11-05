@@ -2,6 +2,7 @@
 import asyncio
 import json
 import math
+import logging
 import os
 from pathlib import Path
 from uuid import uuid4
@@ -12,6 +13,41 @@ import httpx
 
 from agents.common.task_models import ResourceEndpoint, TaskResult
 from agents.manager_agent.resource_catalog import load_resource_catalog
+
+
+
+logger = logging.getLogger(__name__)
+
+
+async def wait_with_status(proc, telemetry, agent_name, group):
+    """Show metadata-only milestones on the worker's local terminal."""
+    reported = set()
+    def observe():
+        try:
+            events = json.loads(telemetry.read_text()).get("events", [])
+            for event in events:
+                name = event.get("name")
+                if event.get("status") != "ok" or name in reported:
+                    continue
+                if name == "sst_session_key":
+                    logger.info("STATUS | %s | Session key received: %s", agent_name, group)
+                    reported.add(name)
+                elif name == "sst_connect":
+                    logger.info("STATUS | %s | Secure connection established: %s", agent_name, group)
+                    reported.add(name)
+        except (OSError, ValueError, AttributeError, TypeError):
+            pass
+    waiter = asyncio.create_task(proc.wait())
+    try:
+        while not waiter.done():
+            observe()
+            await asyncio.wait({waiter}, timeout=0.1)
+        observe()
+        return await waiter
+    finally:
+        if not waiter.done():
+            waiter.cancel()
+        await asyncio.gather(waiter, return_exceptions=True)
 
 
 def delivery_groups():
@@ -83,14 +119,14 @@ async def deliver(agent_name, worker, default_config, delegated_groups, endpoint
         timeout = float(os.getenv("IOTAUTH_TIMEOUT_SECONDS", "30"))
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("Invalid IOTAUTH_TIMEOUT_SECONDS")
+        logger.info("STATUS | %s | Delivery task started", agent_name)
         await animate("begin")
         for group, command, expected in steps:
             with TemporaryDirectory(prefix="sst-latency-") as telemetry_dir:
                 telemetry = Path(telemetry_dir) / "timings.json"
                 trace = current_trace()
                 env = dict(os.environ)
-                if trace is not None:
-                    env["IOTAUTH_LATENCY_FILE"] = str(telemetry)
+                env["IOTAUTH_LATENCY_FILE"] = str(telemetry)
                 with measure("sst_resource_command", resource=group, command=command) as timing:
                     proc = await asyncio.create_subprocess_exec(
                         os.getenv("IOTAUTH_NODE", "node"), str(script), config, group,
@@ -99,7 +135,7 @@ async def deliver(agent_name, worker, default_config, delegated_groups, endpoint
                         stderr=asyncio.subprocess.DEVNULL)
                     try:
                         async with asyncio.timeout(timeout):
-                            code = await proc.wait()
+                            code = await wait_with_status(proc, telemetry, agent_name, group)
                         if code:
                             timing["status"] = "error"
                     finally:
@@ -115,9 +151,16 @@ async def deliver(agent_name, worker, default_config, delegated_groups, endpoint
                 detail = {2: "invalid endpoint", 3: "unexpected secure reply"}.get(code, "secure command failed")
                 raise ValueError(f"{command} on {group}: {detail}")
             confirmed.append(expected)
+            logger.info("STATUS | %s | %s acknowledged by %s", agent_name, command, group)
             await animate("pickup" if command == "RETRIEVE_ITEM" else "finish")
         completed = True
+        if simulator:
+            logger.info("STATUS | %s | Gate opening confirmed in Gazebo", agent_name)
+            logger.info("STATUS | %s | Item placed in the secure zone (Gazebo)", agent_name)
+        else:
+            logger.info("STATUS | %s | Secure replies confirmed; physical placement was not verified", agent_name)
     except (OSError, ValueError, TimeoutError, httpx.HTTPError) as exc:
+        logger.error("STATUS | %s | Delivery failed: %s", agent_name, str(exc) or "timed out")
         return error(f"Delivery failed: {str(exc) or 'timed out'}. Confirmed replies: {confirmed}. "
                      + ("Inspect the simulator and reset the scene before retrying." if simulator else ""))
     finally:
