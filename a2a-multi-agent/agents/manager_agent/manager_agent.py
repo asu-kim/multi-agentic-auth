@@ -21,6 +21,9 @@ Requirements and selection:
   facts they already supplied. A rejected candidate is a reason to inspect another
   agent, not to question or weaken the request. Ask only for genuinely missing or
   conflicting information needed to proceed; never ask which agent to inspect.
+  Once discovery starts, inspect the remaining roster or positively assess a
+  candidate before asking for clarification. If an address is rejected, copy an
+  exact remaining roster URL from the error and retry discovery.
 - Preserve explicit required_capabilities. Otherwise use set_requirements to infer
   ALL needed skill IDs from discovered cards, mapping synonyms without dropping
   unsupported needs (retain those as descriptive snake_case IDs).

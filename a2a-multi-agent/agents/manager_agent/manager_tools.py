@@ -63,7 +63,7 @@ TOOL_SPECS = {
     "revoke_authority": (AgentAddress, "After the worker reports completed or simulated, revoke the exact confirmed grant using user.js. Call before finish_search. Do not retry uncertain revocations."),
     "dispatch_task": (AgentAddress, "After successful delegation, send the selected agent its task over A2A. With confirmed grants for both item and gate, request deliver_to_safe_zone with the original task and resource endpoints. Otherwise forward the original task. Observe the worker result before finishing. Never retry uncertain execution."),
     "finish_search": (Finish, "Finish only after authority delegation and worker dispatch, then revocation after completion; report delegation or worker failures accurately. Selection alone cannot finish a task. Report not_found only after inspecting the roster and rejecting every skill-matching candidate."),
-    "ask_user": (Clarification, "Ask only for genuinely missing or conflicting task/authorization information. Read the original request first; never reconfirm supplied facts. An unsuitable candidate calls for further discovery, not clarification."),
+    "ask_user": (Clarification, "Ask only for genuinely missing or conflicting task/authorization information. Read the original request first; never reconfirm supplied facts. Once discovery starts, inspect the remaining roster or positively assess a candidate before asking for clarification. Never ask the user to choose a discovery URL."),
 }
 TOOLS = [
     {"type": "function", "function": {"name": name, "description": description,
@@ -97,6 +97,7 @@ class ManagerTools:
         self.urls = dict.fromkeys(url.rstrip("/") for url in urls)
         self.cards: dict[str, AgentCard] = {}
         self.inspected: set[str] = set()
+        self.discovery_started = False
         self.discovery_errors: set[str] = set()
         self.required = normalize_capabilities(request.required_capabilities)
         self.explicit_requirements = bool(request.required_capabilities)
@@ -164,6 +165,7 @@ class ManagerTools:
             return result
 
     async def discover_agent(self, args: AgentAddress) -> dict:
+        self.discovery_started = True
         url = self.address(args.agent_url)
         self.inspected.add(url)
         self.assessments.pop(url, None)
@@ -434,6 +436,19 @@ class ManagerTools:
     async def ask_user(self, args: Clarification) -> dict:
         if not args.question.strip():
             raise ValueError("Provide a nonempty clarification question.")
+        remaining = [url for url in self.urls if url not in self.inspected]
+        suitable = any(assessment.suitable for assessment in self.assessments.values())
+        # A malformed URL or an unsuitable card is not missing user input.
+        # Allow initial task clarification and authorization questions after selection.
+        # Use inspected (not loaded cards) so unreachable agents cannot lock out
+        # legitimate clarification after the roster has been attempted.
+        if self.discovery_started and remaining and not suitable:
+            raise ValueError(
+                "Discovery is incomplete. Do not ask the user which agent to inspect. "
+                f"Call discover_agent with an exact remaining roster URL: {remaining}. "
+                "Continue until a candidate can be positively assessed or the roster "
+                "has been inspected; then ask only for missing task/authorization details."
+            )
         self.finished = self.result("input_required", args.question)
         return {"status": "input_required", "question": args.question}
 
