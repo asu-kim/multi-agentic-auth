@@ -134,7 +134,7 @@ class ManagerTools:
             elif self.task_result and self.task_result.get("status") in {"completed", "simulated"} and url not in self.revocations:
                 names, hint = {"revoke_authority"}, "Worker completion is recorded. Revoke the confirmed grants."
             else:
-                names, hint = {"finish_search"}, "Finish with the recorded worker and revocation results; do not repeat execution."
+                names, hint = {"finish_search"}, "Finish with the recorded worker and revocation robot_deploy; do not repeat execution."
         elif suitable:
             addresses = suitable
             if self.selected_resource is not None:

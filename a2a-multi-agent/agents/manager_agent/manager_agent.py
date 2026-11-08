@@ -129,7 +129,7 @@ class ManagerAgent:
                 for turn in range(1, self.max_turns + 1):
                     tools, next_step = actions.next_tools()
                     # Current state is ephemeral guidance, not an ever-growing
-                    # sequence of hints that could contradict later tool results.
+                    # sequence of hints that could contradict later tool robot_deploy.
                     current_messages = [*messages, {"role": "user", "content":
                         f"Runtime progress (turn {turn}/{self.max_turns}): {next_step} "
                         "Use a currently offered tool with its exact schema."}]

@@ -125,7 +125,7 @@ class LatencyTrace:
                    "events": self.events, "worker_traces": self.worker_traces,
                    "warnings": self.warnings}
         directory = Path(os.getenv("LATENCY_OUTPUT_DIR", str(
-            Path(__file__).resolve().parents[2] / "results/latency"))).expanduser().resolve()
+            Path(__file__).resolve().parents[2] / "robot_deploy/latency"))).expanduser().resolve()
         target = directory / f"{self.trace_id}_{self.role}_{uuid4().hex[:8]}.json"
         payload["file"] = str(target)
         temporary = None

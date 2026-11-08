@@ -86,7 +86,7 @@ class OllamaJSON:
             # feed the provider's malformed output back as conversation content.
             recovery_messages = [*messages, {"role": "user", "content": (
                 "The provider could not parse your last tool call; no tool from that "
-                "response was executed. Continue from the existing tool results. "
+                "response was executed. Continue from the existing tool robot_deploy. "
                 "Return one native tool call with a valid JSON argument object matching "
                 "its schema. Copy agent_url exactly from the allowed schema values. "
                 "Do not put prose, reasoning, Markdown, or multiple objects in arguments."
