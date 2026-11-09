@@ -61,10 +61,10 @@ On the Mac:
 
 ```bash
 cd ~/multi-agentic-auth/iotauth
-scp 'sunyoung@10.218.101.248:~/multi-agentic-auth/iotauth/entity/credentials/keys/net1/Net1.gate*Key.key' entity/credentials/keys/net1
-scp 'sunyoung@10.218.101.248:~/multi-agentic-auth/iotauth/entity/credentials/keys/net1/Net1.targetItem*Key.key' entity/credentials/keys/net1
+scp 'USER@SERVER_IP:~/multi-agentic-auth/iotauth/entity/credentials/keys/net1/Net1.gate*Key.key' entity/credentials/keys/net1
+scp 'USER@SERVER_IP:~/multi-agentic-auth/iotauth/entity/credentials/keys/net1/Net1.targetItem*Key.key' entity/credentials/keys/net1
 
-scp 'sunyoung@10.218.101.248:~/multi-agentic-auth/iotauth/entity/credentials/keys/net1/Net1.forkliftAgent*Key.key' entity/credentials/keys/net1
+scp 'USER@SERVER_IP:~/multi-agentic-auth/iotauth/entity/credentials/keys/net1/Net1.forkliftAgent*Key.key' entity/credentials/keys/net1
 scp entity/credentials/keys/net1/Net1.forkliftAgent*Key.key \
   jetson@100.101.153.11:~/multi-agentic-auth/iotauth/entity/credentials/keys/net1/
 
@@ -122,7 +122,7 @@ ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
   -R 127.0.0.1:21100:127.0.0.1:21100 \
   -R 127.0.0.1:21101:127.0.0.1:21101 \
   -R 127.0.0.1:21200:127.0.0.1:21200 \
-  sunyoung@10.218.101.248
+  USER@SERVER_IP
 ```
 
 Mac terminal B:
