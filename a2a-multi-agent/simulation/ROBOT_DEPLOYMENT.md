@@ -10,6 +10,21 @@ This setup runs the Forklift Agent on the robot. All motion, gate animation, and
 
 The robot address comes from the supplied Tailscale screenshot. Confirm that it is online before connecting. Replace `ROBOT_USER` with the robot's SSH login. Keep the robot awake and connected during the task.
 
+## 0. Install Gazebo on the Mac
+
+Install Homebrew and Command Line Tools compatible with your macOS version. Then run these commands in a Mac terminal. [Gazebo installation guide](https://gazebosim.org/docs/harmonic/install_osx/)
+
+```bash
+brew tap osrf/simulation
+brew trust osrf/simulation
+ulimit -Sn 10240
+brew install gz-harmonic
+gz sim --versions
+```
+
+The reported Gazebo Sim version should be `8.x`.
+
+
 ## 1. Install the worker code
 
 Put the current repository at `~/multi-agentic-auth` on the robot. Set up Python 3.12 or later and a working Node.js/npm runtime. Use an isolated environment for this agent application. The full setup explanation is in [Setup](../README.md#setup).
