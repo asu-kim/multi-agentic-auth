@@ -2,7 +2,8 @@
 
 Multi-Agentic Auth combines Agent-to-Agent (A2A) task coordination with IoTAuth/Secure Swarm Toolkit (SST) access delegation for multi-agent systems. A manager discovers worker capabilities, selects a suitable worker, and grants it temporary access to the protected resources needed for a task. After the worker reports completion, the manager requests revocation of the delegated permissions.
 
-Agent Cards describe what a worker can do; Auth policies determine which resources it may access. The repository brings together the agent runtime, authorization infrastructure, a configuration GUI, and a warehouse simulation to demonstrate this workflow.
+Agent Cards describe what a worker can do. We assume that the Agent Cards are given and predefined. 
+Auth policies determine which resources it may access. The repository brings together the agent runtime, authorization infrastructure, a configuration GUI, and a warehouse simulation to demonstrate this workflow.
 
 For detailed installation, configuration, and execution instructions, see the [deployment README](a2a-multi-agent/README.md) and the [simulator README](a2a-multi-agent/simulation/README.md).
 
