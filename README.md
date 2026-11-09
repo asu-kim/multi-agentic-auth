@@ -7,6 +7,8 @@ Auth policies determine which resources it may access. The repository brings tog
 
 For detailed installation, configuration, and execution instructions, see the [deployment README](a2a-multi-agent/README.md) and the [simulator README](a2a-multi-agent/simulation/README.md).
 
+**(For the experimental setup used in the paper, see the [Robot deployment guide](a2a-multi-agent/simulation/ROBOT_DEPLOYMENT.md))**
+
 ## How it works
 
 1. **Configure the system.** Register agents and resources, define group-based access and delegation privileges, and generate IoTAuth credentials and configurations with the graph GUI.
