@@ -60,6 +60,8 @@ Start the agent after completing the credentials, tunnels, and environment setti
 
 ## 2. Copy the Forklift credentials
 
+Set up `my_agents.graph` file. See [Configuration GUI guide](AGENT_GRAPH_GUI.md).
+
 The checked configuration uses `usePermanentDistKey: true`. It needs these two files from the Auth deployment that provisioned `net1.forkliftAgent`:
 
 - `Net1.forkliftAgentCipherKey.key`
